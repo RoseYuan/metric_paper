@@ -1,3 +1,5 @@
+# Code to collect data from previous benchmark
+AV_AW_tradeoff/collect_results.R
 # Produced figures
 Figures/**/*.pdf
 
