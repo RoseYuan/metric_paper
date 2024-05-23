@@ -1,7 +1,7 @@
 ---
 title: "Graph toy examples"
 output: html_document
-date: "2023-09-10"
+date: "2024-05-23"
 ---
 
 ```{r}
@@ -10,8 +10,6 @@ suppressPackageStartupMessages({
   library(patchwork)
   library(igraph)
   library(ggnetwork)
-  library(BiocParallel)
-  library(IRanges)
 })
 knitr::opts_chunk$set(dev="CairoPNG")
 ```
@@ -253,44 +251,6 @@ p1b <- ggplot(gs2, aes(graph, value, colour=level, group=level)) + geom_point() 
 pdf("graph_neighborhood.pdf", width=9, height=5.5)
 plotGraphs(db)/(p1b + ylim(0,NA)) + plot_layout(heights=c(7,4))
 dev.off()
-```
-
-
-# Check compactness normalization for graph size:
-
-```{r, eval=FALSE}
-getOneGraph <- function(nMult=1L, sd=0.5, k=7){
-  stopifnot(is.integer(nMult))
-  d <- data.frame(x=c(rnorm(nMult*20, -2, sd=sd), rnorm(nMult*20, -1, sd=sd), rnorm(nMult*20, 0, sd=sd),rnorm(nMult*20, 1, sd=sd),rnorm(nMult*20, 2, sd=sd), rnorm(nMult*60,0,sd=sd*0.8)),
-                 y=c(rnorm(nMult*20, 0.2, sd=sd), rnorm(nMult*20, 1, sd=sd), rnorm(nMult*20, 2, sd=sd),rnorm(nMult*20, 1, sd=sd),rnorm(nMult*20, 0, sd=sd), rnorm(nMult*60,-2,sd=sd)),
-                 class=rep(1:2,nMult*c(100,60)))
-  df2knn(d, k=k)
-}
-
-set.seed(10)
-bp <- MulticoreParam(4, progressbar = TRUE, RNGseed = 123)
-res <- bplapply(c(3,5,7,10,12,15,20,25), BPPARAM=bp, FUN=function(k){
-  lapply(rep(as.integer(c((1:6)^2,50)),each=2), FUN=function(i){
-    knn <- getOneGraph(i, k=k)
-    cbind(getGraphStats(knn, doCohesion=FALSE), k=k)
-  })
-})
-res <- dplyr::bind_rows(unlist(res, recursive=FALSE))
-saveRDS(res, file="graphStats.rds")
-```
-
-
-```{r}
-res <- readRDS("graphStats.rds")
-nn <- res$value[res$metric=="nn"]
-ne <- res$value[res$metric=="nn"]
-res <- res[which(res$metric=="meanShortPath"),]
-res$nn <- nn
-res$ne <- ne
-ggplot(res, aes(sqrt(nn), test, group=k, colour=k)) + geom_smooth(method = "lm") + geom_point() + facet_wrap(~level, scales = "free_y") + scale_x_sqrt() + scale_y_sqrt()
-# we can therefore define the normalized diameter as the diameter divided by the sqrt(density), and compare it across classes:
-res$nDiameter <- res$diameter/sqrt(res$ne)
-ggplot(res, aes(factor(class), nDiameter)) + geom_violin() + facet_wrap(~k, scales = "free_y")
 ```
 
 
