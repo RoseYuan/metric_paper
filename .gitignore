@@ -1,3 +1,6 @@
+# Produced figures
+Figures/**/*.pdf
+
 # History files
 .Rhistory
 .Rapp.history
