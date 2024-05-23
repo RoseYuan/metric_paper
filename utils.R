@@ -51,6 +51,36 @@ adjusted_wallance_indices <-function(true=NULL, pred=NULL, contigency_res=NULL){
     return(list("AW"=aw, "AV"=av, "ARI"=ari, "AW2"=aw2, "AV2"=av2, "ARI2"=ari2,"Awi"=awi, "Avj" = avj))
 }
 
+pwc <- function(graph, label, label_idx){
+  suppressPackageStartupMessages({
+    require(igraph)
+  })
+  V(graph)$label <- label
+  label_ls <- unique(label)
+  df_graph <- as_data_frame(graph, what = c("edges"))
+  
+  v_1 <- V(graph)[V(graph)$label == label_ls[label_idx]]
+  v_2 <- V(graph)[V(graph)$label != label_ls[label_idx]]
+
+  
+  l1 <- length(v_1)
+  
+  j1 <- 0
+  w1 <- 0
+  for (i in v_1){
+      df_tmp <- df_graph[df_graph$to == i | df_graph$from == i,] # edges of node i
+      a <- sum(df_tmp$from %in% v_1 & df_tmp$to %in% v_1) # within cluster edges of node i
+      b <- sum(df_tmp$from %in% v_1 & df_tmp$to %in% v_2) + sum(df_tmp$to %in% v_1 & df_tmp$from %in% v_2)# between cluster edges of node i
+      c <- sum(df_tmp$weight[df_tmp$from %in% v_1 & df_tmp$to %in% v_1])
+      d <- sum(df_tmp$weight[df_tmp$from %in% v_1 & df_tmp$to %in% v_2]) + sum(df_tmp$weight[df_tmp$to %in% v_1 & df_tmp$from %in% v_2])
+      if(b>=a){j1 <- j1+1}
+      if(d>=c){w1 <- w1+1}
+  }
+  return(list(j1=j1, j1_frac=j1/l1, w1=w1, w1_frac=w1/l1))
+}
+
+
+
 ##################
 # Visualization
 ##################
@@ -163,7 +193,7 @@ cross_table_plot <- function(ground_truth, clusterings, a=1.3, b=5.7, c=2, m=0, 
             axis.title = element_blank(),
             line = element_blank(),
             panel.background = element_blank()) + 
-            geom_text(size=8,  fontface = "bold", aes(label = paste0("AW = ", round(res$AW,3), "\n", "AV = ", round(res$AV,3), "\n", "ARI = ", round(res$ARI,3), "\n", "ARI2 = ", round(res$ARI2,3))), x = 0.5, y = 0.5)
+            geom_text(size=8,  fontface = "bold", aes(label = paste0("AW = ", round(res$AW,3), "\n", "AV = ", round(res$AV,3), "\n", "ARI = ", round(res$ARI,3))), x = 0.5, y = 0.5)
 
     plot <- ggarrange(
     bp.x, gg_empty, main, bp.y,
@@ -218,4 +248,16 @@ add_embedding <- function(sobj, embed, embed_name="learned_embedding", max_dim=N
 
     sobj@reductions[[embed_name]] <- CreateDimReducObject(embeddings = as.matrix(embed), key = "LSI_", assay = DefaultAssay(sobj))
     return(sobj)
+}
+
+graph_from_sobj <- function(sobj, embedding_name="learned_embedding", n_neighbors=20){
+    sobj <- Seurat::FindNeighbors(object = sobj, 
+                        reduction = embedding_name, 
+                        graph.name = c(paste0("knn_k", n_neighbors), paste0("snn_k", n_neighbors)),
+                        dims=1:15,
+                        k.param=n_neighbors)
+    gm <- sobj@graphs[[paste0("snn_k", n_neighbors)]]
+    attributes(gm)$class <- "dgCMatrix"
+    g <- igraph::graph_from_adjacency_matrix(adjmatrix = gm, add.colnames = TRUE, mode = "directed", weighted = TRUE)
+    return(g)
 }
