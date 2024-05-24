@@ -79,7 +79,32 @@ pwc <- function(graph, label, label_idx){
   return(list(j1=j1, j1_frac=j1/l1, w1=w1, w1_frac=w1/l1))
 }
 
+cal_distance <- function(x, metric="Euclidean") {
+        if (metric == "Euclidean"){
+        dist.matrix <- stats::dist(x)
+    }else if(metric == "correlation"){
+        dist.matrix <- amap::Dist(x, method = "correlation")
+    }else if(metric == "manhattan"){
+        dist.matrix <- stats::dist(x,method = "manhattan")
+    }else if(metric == "cosine"){
+        dist.matrix <- stylo::dist.cosine(x)
+        }
+}
+# for a given distance matrix and given labels, calculate silhouette score, plot the silhouette distribution and average silhouette.
+silhouette_result <- function(dist.matrix, labels, title="", my_col=NULL){
+    suppressPackageStartupMessages({
+        require(cluster)
+        require(pals)
+    })
+    if (is.null(my_col)){
+        my_col <- unlist(polychrome())[1:max(as.numeric(as.factor(labels)))]
+    }
 
+    sil = silhouette(as.numeric(as.factor(labels)), dist.matrix)
+    p <- plot(sil, border=NA, col=my_col, main=title)
+    avg_sil <- mean(sil[, 3])
+    return(list("fig" = p, "avg" = avg_sil, "sil" = sil))
+}
 
 ##################
 # Visualization
@@ -97,7 +122,7 @@ suppressPackageStartupMessages({
 })
 
 my_col_paired <- brewer.pal(12, "Paired")
-my_col_polychrome <- unlist(polychrome())
+my_col_polychrome <- as.vector(unlist(polychrome()))
 my_col_WRdDk <- c("#FFFFFF","#FFFF66","#FFCC33","#F57F17","#EE0000","#990000","#660000")
 my_col_WPkRd <- c("#FFFFFF","#FFCCCC","#FF9999","#FF6666","#FF3333","#CC0033")
 my_col_BlWPp <- c("#0066CC","#3399FF","#FFFFFF","#FF99FF","#FF00FF")
