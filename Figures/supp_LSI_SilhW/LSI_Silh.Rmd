@@ -1,0 +1,52 @@
+---
+title: "Silhouette width and distance metric on LSI embedding of scATAC"
+author: "Pierre-Luc Germain"
+output: workflowr::wflow_html
+---
+
+```{r setup}
+knitr::opts_chunk$set(dev="CairoPNG")
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(patchwork)
+  library(cowplot)
+})
+```
+
+```{r}
+d <- readRDS("Atlas2_ArchR_tiles_ndim15_LSI.rds")
+```
+
+
+```{r, fig.height=7, fig.width=8}
+p0 <- ggplot(d, aes(LSI_4, LSI_5, colour=class)) + geom_point() + theme_bw()
+an <- data.frame(LSI_4=c(-8,-3), LSI_5=c(-25,-10))
+p1 <- ggplot(d[order(-d$log10sum),], aes(LSI_4, LSI_5, colour=log10sum)) + geom_point() + theme_bw() + scale_colour_viridis_c() +
+    labs(colour="log10 total\ncounts") + geom_line(data=an, colour="black", linetype="dashed") +
+    geom_point(data=an, colour="black", shape="+", size=7) +
+  annotate("text", x=-2, y=-27, label="Large within-class distances\ndue to library size differences", hjust=0)
+  # theme(legend.position="bottom")
+
+d$silhW <- cluster::silhouette(as.integer(d$class), dist(d[,1:15]))[,3]
+
+d <- d[order(d$class, d$silhW),]
+d$class2 <- gsub("_","\n",gsub("_[1-2]","",d$class))
+# d$cell <- factor(row.names(d), row.names(d))
+# ps <- ggplot(d, aes(cell, silhW, group=class, fill=class)) + geom_col(position="dodge") + 
+#   labs(x="Cells", y="Silhouette width") + 
+#   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+ps <- ggplot(d, aes(class2, silhW, fill=class2)) + geom_hline(yintercept=0, linetype="dashed") +
+  geom_violin() + labs(x="Cell classes", y="Silhouette width") + theme_bw() + theme(legend.position="none")
+
+pb <- ggplot(d[order(-d$silhW),], aes(LSI_4, LSI_5, colour=silhW)) + geom_point() + theme_bw() + scale_color_gradient2(breaks=c(-0.5,0,0.5)) + 
+  labs(colour="Silhouette\nwidth") #+ theme(legend.position="bottom")
+```
+
+
+```{r, fig.height=9, fig.width=8.5}
+pdf("LSI_Silh.pdf", width=8.5, height=9)
+plot_grid(ps, p0, plot_grid(p1,pb,nrow=1,labels=LETTERS[3:4]), nrow=3, labels=c("A","B",NA), rel_heights=c(2,3,3))
+dev.off()
+```
+
