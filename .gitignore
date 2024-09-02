@@ -6,7 +6,7 @@ partition_real_life_examples/collect_results.R
 PWC/test.RDS
 # Produced figures
 Figures/**/*.pdf
-
+Figures/**/*.svg
 # History files
 .Rhistory
 .Rapp.history
