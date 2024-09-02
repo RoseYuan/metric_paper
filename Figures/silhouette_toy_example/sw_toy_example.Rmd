@@ -10,6 +10,7 @@ suppressPackageStartupMessages({
   library(patchwork)
 })
 knitr::opts_chunk$set(dev="CairoPNG")
+source("../../../ClusteringMetrics/R/CDbw.R")
 ```
 
 ```{r}
@@ -40,6 +41,22 @@ d3$x[head(order(d3$sw),3)] <- d3$x[head(order(d3$sw),3)]-1
 d3$y[head(order(d3$sw),3)] <- d3$y[head(order(d3$sw),3)] - (d3$y[head(order(d3$sw),3)]-0.3)/2
 # recompute silhouettes
 d3$sw <- cluster::silhouette(as.integer(factor(d3$class)), dist(d3[,1:2]))[,3]
+getGlobal <- function(d){
+  a <- CDbw(d[,1:2], as.integer(factor(d$class)))
+  names(a) <- paste0("CDbw\n",gsub("^sep$","separation",names(a)))
+  c(a, "mean\nsilh.width"=mean(d$sw))
+}
+gm <- getGlobal(da)
+gm <- data.frame(scenario=rep(as.character(1:2), each=5),
+                 metric=rep(names(gm),2),
+                 value=c(gm, getGlobal(d3)))
+gmp <- ggplot(gm, aes(x=scenario, y=value, fill=scenario)) +
+  geom_col(position = "dodge") + facet_wrap(~metric, scales="free_y", ncol=2) + 
+  theme_classic() + theme(legend.position=c(1, 0), axis.title.x=element_blank(),
+                          legend.justification=c(1, 0),
+                          axis.text.x=element_blank(),
+                          axis.ticks.x=element_blank(),
+                          strip.background=element_blank())
 ```
 
 
@@ -61,9 +78,10 @@ pPlot <- function(d3, lims=c(-0.206,0.92)){
 ```
 
 
-```{r, fig.width=7, fig.height=4.5}
-pdf("SW.pdf", width=7, height=4.5)
-((swPlot(da, "Scenario 1") + swPlot(d3, "Scenario 2")) / (pPlot(da) + pPlot(d3))) + 
-  plot_layout(guides = "collect", heights = c(1,3)) & theme(legend.position = "bottom")
+```{r, fig.width=8.5, fig.height=4.5}
+p1 <- (((swPlot(da, "Scenario 1") + swPlot(d3, "Scenario 2")) / (pPlot(da) + pPlot(d3))) + 
+  plot_layout(guides = "collect", heights = c(1,3)) & theme(legend.position = "bottom"))
+pdf("SW.pdf", width=8.5, height=4.5)
+ cowplot::plot_grid(p1, gmp, rel_widths=c(1,0.42), labels=LETTERS[1:2], scale=c(0.95, 1))
 dev.off()
 ```
