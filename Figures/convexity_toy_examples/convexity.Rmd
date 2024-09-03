@@ -3,6 +3,8 @@ suppressPackageStartupMessages({
     library(ggplot2)
     library(patchwork)
     library(dplyr)
+  library(parallel)
+  library(cowplot)
   })
 ```
 
@@ -88,8 +90,9 @@ df$metric<- gsub(" ", "\n", df$metric)
 p3 <- df %>% 
   ggplot(aes(x=scenario, y=value, fill=scenario)) + 
   geom_col(position = "dodge") + theme_bw() + 
-  facet_wrap(~metric, nrow = 3, scales = "free") +
-  theme(plot.margin = margin(1, 1, 0, 0), legend.position = "None") + 
+  facet_wrap(~metric, nrow = 3, scales = "free") + theme_bw() +
+  theme(plot.margin = margin(1, 1, 0, 0), legend.position = "None",
+                          strip.background=element_blank()) + 
   labs(fill="", x="", y="")
 ```
 
