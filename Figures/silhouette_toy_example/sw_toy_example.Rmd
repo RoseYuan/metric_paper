@@ -88,6 +88,6 @@ pPlot <- function(d3, lims=c(-0.206,0.92)){
 p1 <- (((swPlot(da, "Scenario 1") + swPlot(d3, "Scenario 2")) / (pPlot(da) + pPlot(d3))) + 
   plot_layout(guides = "collect", heights = c(1,3)) & theme(legend.position = "bottom"))
 pdf("SW.pdf", width=8.5, height=4.5)
- cowplot::plot_grid(p1, gmp, rel_widths=c(1,0.42), labels=LETTERS[1:2], scale=c(0.95, 1))
+ cowplot::plot_grid(p1, gmp, rel_widths=c(1,0.42), labels=letters[1:2], scale=c(0.95, 1))
 dev.off()
 ```

@@ -107,8 +107,8 @@ pdf(file="convexity.pdf", width=7, height=5)
 #                    p2 + theme(legend.box.margin=unit(0, "cm")), 
 #                    p3,  
 #                    labels=LETTERS[1:3], nrow=3)
-col_plot <- plot_grid(p1, p2, labels=LETTERS[1:2], ncol = 1)
-final_plot <- plot_grid(col_plot, p3, nrow = 1, labels=c("", "C"), rel_widths = c(1, 0.6))
+col_plot <- plot_grid(p1, p2, labels=letters[1:2], ncol = 1)
+final_plot <- plot_grid(col_plot, p3, nrow = 1, labels=c("", "c"), rel_widths = c(1, 0.6))
 final_plot
 dev.off()
 ```
