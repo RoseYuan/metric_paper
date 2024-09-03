@@ -90,10 +90,14 @@ df$metric<- gsub(" ", "\n", df$metric)
 p3 <- df %>% 
   ggplot(aes(x=scenario, y=value, fill=scenario)) + 
   geom_col(position = "dodge") + theme_bw() + 
-  facet_wrap(~metric, nrow = 3, scales = "free") + theme_bw() +
-  theme(plot.margin = margin(1, 1, 0, 0), legend.position = "None",
-                          strip.background=element_blank()) + 
-  labs(fill="", x="", y="")
+  facet_wrap(~metric, nrow = 3, scales = "free_y") + theme_bw() +
+  theme(plot.margin = margin(1, 1, 0, 0), 
+        legend.position = "bottom",
+        strip.background=element_blank(),
+        legend.box.spacing = unit(-0.1, "cm"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) + 
+  labs(fill="scenario", x="", y="")
 ```
 
 
