@@ -193,13 +193,13 @@ cross_table_plot <- function(ground_truth, clusterings, a=1.3, b=5.7, c=2, m=0, 
         legend.position = "none",
         # legend.position = "top",
         panel.background = element_blank()) + 
-    labs(y = "Homogeneity", fill="Fraction")+ theme(plot.margin = unit(c(1, 0, 0, b), "cm"))
+    labs(y = "AWH", fill="Fraction")+ theme(plot.margin = unit(c(1, 0, 0, b), "cm"))
 
     bp.y <- ggplot(data = df_awi, aes(x = cell_type, y = awi, fill=frac)) +
     geom_bar(stat = "identity", colour = "black", size=0.1) + coord_flip() + # theme_ipsum() + #theme_gray() +
     scale_fill_gradientn(colours = my_col_WPkRd, guide = guide_colourbar(), limits = c(m, n)) +
     theme(axis.title.x = element_text(size = 16, margin = margin(5,5,0,0), face="bold"), 
-            axis.text.x = element_text(size = 12, face="bold"),
+            axis.text.x = element_text(size = 7, face="bold"),
             axis.text.y = element_blank(), 
             axis.title.y = element_blank(), 
             axis.ticks.y = element_blank(), 
@@ -207,7 +207,7 @@ cross_table_plot <- function(ground_truth, clusterings, a=1.3, b=5.7, c=2, m=0, 
             legend.title=element_text(size=14, face="bold"),
             # legend.position="none",
             panel.background = element_blank()) + 
-    labs(y="Completemess", fill="Fraction")+ theme(plot.margin = unit(c(0, 0, c, 0), "cm"))
+    labs(y="AWC", fill="Fraction")+ theme(plot.margin = unit(c(0, 0, c, 0), "cm"))
 
     df_hm <- data.frame(cols = numeric(0), value = numeric(0))
 
@@ -218,7 +218,7 @@ cross_table_plot <- function(ground_truth, clusterings, a=1.3, b=5.7, c=2, m=0, 
             axis.title = element_blank(),
             line = element_blank(),
             panel.background = element_blank()) + 
-            geom_text(size=8,  fontface = "bold", aes(label = paste0("AW = ", round(res$AW,3), "\n", "AV = ", round(res$AV,3), "\n", "ARI = ", round(res$ARI,3))), x = 0.5, y = 0.5)
+            geom_text(size=7,  fontface = "bold", aes(label = paste0("AWC = ", round(res$AW,3), "\n", "AWH = ", round(res$AV,3), "\n", "ARI = ", round(res$ARI,3))), x = 0.5, y = 0.5)
 
     plot <- ggarrange(
     bp.x, gg_empty, main, bp.y,

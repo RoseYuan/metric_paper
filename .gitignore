@@ -1,3 +1,13 @@
+# Code to collect data from previous benchmark
+**/*.RDS
+AV_AW_tradeoff/collect_results.R
+partition_real_life_examples/collect_results.R
+**/*_sobj_SNN.RDS
+PWC/test.RDS
+# Produced figures
+Figures/**/*.pdf
+Figures/**/*.svg
+
 # History files
 .Rhistory
 .Rapp.history
