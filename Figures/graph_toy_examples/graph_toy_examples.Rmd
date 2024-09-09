@@ -10,8 +10,10 @@ suppressPackageStartupMessages({
   library(patchwork)
   library(igraph)
   library(ggnetwork)
+  library(scales)
 })
 knitr::opts_chunk$set(dev="CairoPNG")
+devtools::load_all("~/bioinfo/robinson/siyuan/ClusteringMetrics/")
 ```
 
 # Functions
