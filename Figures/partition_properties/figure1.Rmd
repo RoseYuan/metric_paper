@@ -302,17 +302,17 @@ p1.4
 ```{r}
 library(cowplot)
 legend <- get_plot_component(p1.1, "guide-box", return_all = TRUE)[[3]]
-svg("Fig1.svg", width=11, height=3.5)
+svg("Fig1.svg", width=11.5, height=3.5)
 fs <- 12
 combined_plot <- plot_grid(p1.1 + theme(legend.position = "none", 
                                         plot.title = element_text(size = fs), 
-                                        plot.margin = margin(1,0,-1,1)), 
+                                        plot.margin = margin(1,0.5,-1,0.5)), 
                           p1.2 + theme(legend.position = "none", plot.title = element_text(size = fs), 
-                                        plot.margin = margin(1,0,-1,1)), 
+                                        plot.margin = margin(1,0.5,-1,0.5)), 
                           p1.3 + theme(legend.position = "none", plot.title = element_text(size = fs), 
-                                        plot.margin = margin(1,0,-1,1)), 
+                                        plot.margin = margin(1,0.5,-1,0.5)), 
                           p1.4 + theme(legend.position = "none", plot.title = element_text(size = fs), 
-                                        plot.margin = margin(1,0,-1,1)), 
+                                        plot.margin = margin(1,0.5,-1,0.5)), 
                           ncol=4,
                           rel_widths = c(1,1,1,1))
 p1 <- plot_grid(combined_plot, 
