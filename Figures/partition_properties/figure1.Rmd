@@ -19,193 +19,7 @@ library(ggplot2)
 library(tidyr)
 ```
 
-# Normalized Rand Index
-
-```{r}
-# Function to calculate NCR index
-calculate_ncr <- function(clusters, ground_truth) {
-  # Convert to factor to ensure proper handling
-  clusters <- as.factor(clusters)
-  ground_truth <- as.factor(ground_truth)
-  
-  # Create contingency table
-  contingency_table <- table(clusters, ground_truth)
-  
-  # Number of clusters and classes
-  R <- nrow(contingency_table)
-  C <- ncol(contingency_table)
-  
-  # Total number of objects
-  n <- sum(contingency_table)
-  
-  # Initialize variables for agreement counts
-  a <- 0
-  b <- 0
-  c <- 0
-  d <- 0
-  
-  # Iterate over the contingency table to compute counts
-  for (i in 1:R) {
-    for (j in 1:C) {
-      nij <- contingency_table[i, j]
-      if (nij > 1) {
-        a <- a + choose(nij, 2)
-      }
-      ni. <- sum(contingency_table[i, ])
-      n.j <- sum(contingency_table[, j])
-      b <- b + (choose(n.j, 2) - choose(nij, 2))
-      d <- d + (choose(ni., 2) - choose(nij, 2))
-    }
-  }
-  
-  # Normalize a, b, c, and d
-  C_star <- C - sum(colSums(contingency_table) == 1) # Number of non-singleton classes
-  aN <- a / (sum(choose(colSums(contingency_table[, colSums(contingency_table) > 1]), 2)) * C_star)
-  bN <- 1 - aN
-  cN <- (d - b) / choose(C_star, 2)
-  dN <- 1 - cN
-  
-  # Calculate NCR index
-  NCR <- (aN + dN) / (aN + bN + cN + dN)
-  
-  return(NCR)
-}
-
-# Example usage:
-# Assume clusters and ground_truth are vectors of the same length
-clusters <- c(1, 1, 2, 2, 3, 3)
-ground_truth <- c(1, 1, 2, 2, 2, 3)
-ncr_value <- calculate_ncr(clusters, ground_truth)
-print(paste("NCR index:", ncr_value))
-```
-
-```{r}
-calculate_ncr <- function(ground_truth, clusters) {
-  # Convert to factor to ensure proper handling
-  clusters <- as.factor(clusters)
-  ground_truth <- as.factor(ground_truth)
-  
-  # Create contingency table
-  contingency_table <- table(clusters, ground_truth)
-  
-  # Number of clusters and classes
-  R <- nrow(contingency_table)
-  C <- ncol(contingency_table)
-  C_star <- C - sum(colSums(contingency_table) == 1) # Number of non-singleton classes
-  
-  # Total number of objects
-  n <- sum(contingency_table)
-  
-  # Initialize variables for agreement counts
-  aN <- 0
-  bN <- 0
-  cN <- 0
-  dN <- 0
-  
-  # Calculate aN and bN
-  for (j in 1:C) {
-    n_j <- sum(contingency_table[, j])
-    if (n_j > 1) {
-      for (i in 1:R) {
-        n_ij <- contingency_table[i, j]
-        aN <- aN + choose(n_ij, 2) / choose(n_j, 2)
-      }
-    }
-  }
-  aN <- aN/C_star
-  bN <- 1 - aN
-
-  # Calculate cN and dN
-  for (j in 1:(C-1)) {
-    for (k in (j + 1):C) {
-      n_j <- sum(contingency_table[, j])
-      n_k <- sum(contingency_table[, k])
-      if (n_j > 1 && n_k > 1) {
-        sum_n_ij_n_sk <- 0
-        for (i in 1:(R-1)) {
-          for (s in (i+1):R) {
-          n_ij <- contingency_table[i, j]
-          n_sk <- contingency_table[s, k]
-          sum_n_ij_n_sk <- sum_n_ij_n_sk + n_ij * n_sk
-        }
-        }
-        dN <- dN + sum_n_ij_n_sk / (n_j * n_k)
-    }
-  }
- }
-    dN <- dN/choose(C_star,2)
-    cN <- 1 - dN
-  
-  # Calculate NCR index
-  NCR <- (aN + dN) / (aN + bN + cN + dN)
-  
-  return(NCR)
-}
-```
-
-```{r}
-NCR <-function(true=NULL, pred=NULL, contigency_res=NULL){  # cannot be calculated when there's singletons
-    
-    ## get pairs using C
-    ## ensure that values of c1 and c2 are between 0 and n1
-    if (is.null(contigency_res)){
-      res <- aricode::sortPairs(true, pred)
-      n <- length(true)
-    } else{
-      res <- contigency_res
-      n <- sum(res$ni.)
-    }
-    
-    # Calculate the frequency of each label in true
-    C_star <- sum(res$ni.!=1)
-    R <- length(unique(pred))
-    
-    a_N <- 0
-    d_N <- 0
-    for (l in 1:length(res$pair_c1)) {
-      if(choose(res$ni.[res$pair_c1[l]+1],2) != 0){
-        a_N <- a_N + choose(res$nij[l],2)/choose(res$ni.[res$pair_c1[l]+1],2)
-      }
-        for (m in l:length(res$pair_c1)) {
-            if(res$pair_c1[l] != res$pair_c1[m] & res$pair_c2[l] != res$pair_c2[m] & res$ni.[res$pair_c1[l]+1]!=1 & res$ni.[res$pair_c1[m]+1]!=1){
-              # print(paste0("l:",l))
-              # print(paste0("m:",m))
-              # print(paste0("j:", res$pair_c1[l]+1))
-              # print(paste0("k:", res$pair_c1[m]+1))
-              # print("result:")
-              # print(res$nij[l] * res$nij[m] / (res$ni.[res$pair_c1[l]+1] * res$ni.[res$pair_c1[m]+1]))
-              d_N <- d_N + res$nij[l] * res$nij[m] / (res$ni.[res$pair_c1[l]+1] * res$ni.[res$pair_c1[m]+1])
-            }
-        }
-    }
-    a_N <- a_N/C_star
-    d_N <- d_N/choose(C_star,2)
-    b_N <- 1 - a_N
-    c_N <- 1 - d_N
-    return((a_N + d_N)/(a_N + d_N + c_N + b_N))
-}
-```
-
-```{r}
-v <- c(1,1,1,1,1,2,2,3,4,5,6,6,6,6)
-u1 <- c(1,1,1,1,2,2,2,3,3,3,3,3,3,3)
-u2 <- as.factor(c(1,1,1,1,2,3,3,4,4,4,4,4,4,4))
-v <- as.factor(v)
-u1 <- as.factor(u1)
-NCR(v, u1)
-NCR(v, u2)
-
-v <- c(1,1,1,1,1,1,1,2,3,4,5,5,5,5)
-u1 <- c(1,1,1,1,2,3,3,4,4,4,4,4,4,4)
-u2 <- c(1,1,1,1,2,2,2,3,3,3,3,3,3,3)
-v <- as.factor(v)
-u1 <- as.factor(u1)
-u2 <- as.factor(u2)
-NCR(v, u1)
-NCR(v, u2)
-```
-
-# Other metrics
+# Partition metrics
 ```{r}
 external_indices <- function(true, pred, metric="ARI", ...) {
     # check if the cell id matches
@@ -261,7 +75,7 @@ external_indices <- function(true, pred, metric="ARI", ...) {
       return(clevr::v_measure(true, pred, ...))
     }
     if (tolower(metric) == "ncr") {
-      return(NCR(true, pred, ...))
+      return(as.numeric(ClusteringMetrics::getPartitionMetrics(true, pred, "NCR")))
     }
 }
 ```
@@ -282,7 +96,7 @@ cal_all <- function(true, pred, metrics_ls){
            EC = external_indices(true, pred, metric="EC"), 
            VM = external_indices(true, pred, metric="VM"),
            VDM =external_indices(true, pred, metric="VDM"),
-           FM =external_indices(true, pred, metric="FM"),
+           wFM =external_indices(true, pred, metric="FM"),
            MHM =external_indices(true, pred, metric="MHM"),
            NCR = external_indices(true, pred, metric="NCR"),
            stop("Unknown metric.")
@@ -298,7 +112,7 @@ library(colorBlindness)
 names(PairedColor12Steps) <- NULL
 library(scales)
 metric_col <- c(PairedColor12Steps[c(10,7,8,9,1,2,11,12,6)], "black","grey48", PairedColor12Steps[4], "white")
-metric_ls <- c("RI", "WH", "WC", "ARI", "AWH", "AWC", "EH", "EC", "VM", "MI", "AMI", "NCR", "FM") 
+metric_ls <- c("RI", "WH", "WC", "ARI", "AWH", "AWC", "EH", "EC", "VM", "MI", "AMI", "NCR", "wFM") 
 # metric_col <- c("#6A3D9A","#A6CEE3","#1F78B4", "#CAB2D6","#B2DF8A","#33A02C", "#FB9A99","#E31A1C",  "#FF7F00","#B15928","#FDBF6F")
 ps <- 5
 ```
@@ -417,7 +231,7 @@ p1.3
 ### Chance Agreement Neutrality
 ```{r}
 # Sample data
-# set.seed(141)
+set.seed(141)
 
 random_labels <- function(n_samples, n_classes){
   return(sample(1:n_classes, n_samples, replace = TRUE))
@@ -442,7 +256,7 @@ data4 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value)))
 data4$metric <- factor(rownames(data4), levels=metric_ls)
 
 # Create the plot
-l <- -0.3
+l <- -0.15
 m <- 1
 
 # Create a data frame with a grid of points
@@ -461,10 +275,10 @@ p1.4 <- ggplot() +
   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") +
   geom_point(data=data4, aes(x=P1, y=P2), fill=metric_col, size=ps, shape=21, position = position_jitter(width = 0.01, height = 0.01, seed=0)) +
   # scale_fill_manual(values=metric_col) + 
-  geom_segment(data=data4[data4$metric=="ARI",], aes(x = P1-0.05, y = P2+0.18, xend = P1-0.01, yend = P2+0.05), arrow = arrow(length = unit(0.02, "npc")), color = "black") +
-  geom_text(data=data4[data4$metric=="ARI",], aes(x = P1-0.15, y = P2+0.2), label="ARI", hjust = 0, vjust = 0, color = "black") +
-  geom_segment(data=data4[data4$metric=="AWH",], aes(x = P1+0.15, y = P2-0.18, xend = P1+0.04, yend = P2-0.05), arrow = arrow(length = unit(0.02, "npc")), color = "black") +
-  geom_text(data=data4[data4$metric=="AWH",], aes(x = P1+0.15, y = P2-0.2), label="AWH", hjust = 0, vjust = 0, color = "black") +
+  geom_segment(data=data4[data4$metric=="ARI",], aes(x = P1, y = P2+0.18, xend = P1-0.01, yend = P2+0.05), arrow = arrow(length = unit(0.02, "npc")), color = "black") +
+  geom_text(data=data4[data4$metric=="ARI",], aes(x = P1, y = P2+0.2), label="ARI", hjust = 0, vjust = 0, color = "black") +
+  geom_segment(data=data4[data4$metric=="AWH",], aes(x = P1+0.15, y = P2, xend = P1+0.04, yend = P2), arrow = arrow(length = unit(0.02, "npc")), color = "black") +
+  geom_text(data=data4[data4$metric=="AWH",], aes(x = P1+0.15, y = P2-0.02), label="AWH", hjust = 0, vjust = 0, color = "black") +
   xlim(l,m) + ylim(l,m) +
   labs(title="Chance Agreement Neutrality", x="P1", y="P2", fill="Metric") +
   theme_minimal() 
@@ -542,353 +356,3 @@ svg("Fig1_metric_centric.svg", width=7, height=4)
 plot(pb)
 dev.off()
 ```
-
-<!-- # Supplymentary Figure 1 -->
-<!-- ```{r} -->
-<!-- metric_ls <- c("NCR", "AMI", "FM", "MHM") # Van Dongen  -->
-<!-- metric_col <- metric_col[c(3,4,7,9)] -->
-<!-- ps <- 5 -->
-<!-- ``` -->
-
-<!-- ## Property-centric view -->
-<!-- ### Homogeneity -->
-<!-- ```{r} -->
-<!-- # Sample data -->
-<!-- cc <- c(1,1,1,1,2,2,2,2,3,3) -->
-<!-- px <- c(1,1,1,1,2,2,3,3,3,3) -->
-<!-- py <- c(1,1,1,1,2,2,3,3,4,4) -->
-<!-- cc <- as.factor(cc) -->
-<!-- px <- as.factor(px) -->
-<!-- py <- as.factor(py) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- px_value <- cal_all(cc, px, metric_ls) -->
-<!-- py_value <- cal_all(cc, py, metric_ls) -->
-<!-- data1 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value))) -->
-<!-- data1$metric <- factor(rownames(data1), levels=metric_ls) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- # Create the plot -->
-<!-- m <- max(data1$P1,data1$P2)+0.1 -->
-<!-- l <- min(data1$P1,data1$P2)-0.1 -->
-<!-- p1.1 <- ggplot(data1, aes(x=P1, y=P2, fill=metric)) + -->
-<!--   annotate("polygon", x = c(l, m, m), y = c(l, l, m), alpha=0.3, fill="lightblue") + -->
-<!--   annotate("polygon", x = c(l, l, m), y = c(l, m, m), alpha=0.3, fill="pink") + -->
-<!--   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   geom_point(size=ps, shape=21) + -->
-<!--   labs(title="Homogeneity", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal() + scale_fill_manual(values=metric_col) +    -->
-<!--   scale_y_continuous(trans='log10') + -->
-<!--   scale_x_continuous(trans='log10')  -->
-<!-- p1.1 -->
-<!-- ``` -->
-<!-- ### Completeness -->
-<!-- ```{r} -->
-<!-- # Sample data -->
-<!-- cc <- c(1,1,1,1,2,2,2,2,3,3) -->
-<!-- px <- c(1,1,2,2,3,3,4,4,5,5) -->
-<!-- py <- c(1,1,1,1,2,2,3,3,4,4) -->
-<!-- cc <- as.factor(cc) -->
-<!-- px <- as.factor(px) -->
-<!-- py <- as.factor(py) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- px_value <- cal_all(cc, px, metric_ls) -->
-<!-- py_value <- cal_all(cc, py, metric_ls) -->
-<!-- data2 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value))) -->
-<!-- data2$metric <- factor(rownames(data2), levels=metric_ls) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- # Create the plot -->
-<!-- m <- max(data2$P1,data2$P2)+0.1 -->
-<!-- l <- min(data2$P1,data2$P2)-0.1 -->
-<!-- p1.2 <- ggplot(data2, aes(x=P1, y=P2, fill=metric)) + -->
-<!--   annotate("polygon", x = c(l, m, m), y = c(l, l, m), alpha=0.3, fill="lightblue") + -->
-<!--   annotate("polygon", x = c(l, l, m), y = c(l, m, m), alpha=0.3, fill="pink") + -->
-<!--   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   geom_point(size=ps, shape=21, position = position_jitter(width = 0.01, height = 0.01)) + -->
-<!--   labs(title="Completeness", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal() + scale_fill_manual(values=metric_col) + -->
-<!--   scale_y_continuous(trans='log10') + -->
-<!--   scale_x_continuous(trans='log10')  -->
-<!-- p1.2 -->
-<!-- ``` -->
-
-<!-- ### Imbalance -->
-<!-- ```{r} -->
-<!-- # Sample data -->
-<!-- cc <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3) -->
-<!-- px <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,3,3) -->
-<!-- py <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,3,3,3) -->
-<!-- cc <- as.factor(cc) -->
-<!-- px <- as.factor(px) -->
-<!-- py <- as.factor(py) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- px_value <- cal_all(cc, px, metric_ls) -->
-<!-- py_value <- cal_all(cc, py, metric_ls) -->
-<!-- data3 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value))) -->
-<!-- data3$metric <- factor(rownames(data3), levels=metric_ls) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- # Create the plot -->
-<!-- m <- max(data3$P1,data3$P2)+0.1 -->
-<!-- l <- min(data3$P1,data3$P2)-0.1 -->
-<!-- p1.3 <- ggplot(data3, aes(x=P1, y=P2, fill=metric)) + -->
-<!--   # annotate("polygon", x = c(l, m, m), y = c(l, l, m), alpha=0.3, fill="lightblue") + -->
-<!--   # annotate("polygon", x = c(l, l, m), y = c(l, m, m), alpha=0.3, fill="pink") + -->
-<!--   #  -->
-<!--   # scale_y_continuous(trans='log10') + -->
-<!--   # scale_x_continuous(trans='log10') + -->
-<!--   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   geom_point(size=ps, shape=21) + -->
-<!--   xlim(l,m) + ylim(l,m) + -->
-<!--   labs(title="Class Size Sensitivity", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal() + scale_fill_manual(values=metric_col)  -->
-
-<!-- p1.3 -->
-<!-- ``` -->
-
-<!-- ### Chance agreement neutrality -->
-<!-- ```{r} -->
-<!-- # Sample data -->
-<!-- set.seed(141) -->
-
-<!-- random_labels <- function(n_samples, n_classes){ -->
-<!--   return(sample(1:n_classes, n_samples, replace = TRUE)) -->
-<!-- } -->
-
-<!-- n_samples <- 30 -->
-
-<!-- cc <- random_labels(n_samples, n_classes=8) -->
-<!-- px <- random_labels(n_samples, n_classes=2) -->
-
-<!-- n_samples <- 30 -->
-
-<!-- py <- random_labels(n_samples, n_classes=10) -->
-
-<!-- cc <- as.factor(cc) -->
-<!-- px <- as.factor(px) -->
-<!-- py <- as.factor(py) -->
-
-<!-- px_value <- cal_all(cc, px, metric_ls) -->
-<!-- py_value <- cal_all(cc, py, metric_ls) -->
-<!-- data4 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value))) -->
-<!-- data4$metric <- factor(rownames(data4), levels=metric_ls) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- # Create the plot -->
-<!-- l <- -0.3 -->
-<!-- m <- 1 -->
-
-<!-- # Create a data frame with a grid of points -->
-<!-- n <- 100 -->
-<!-- grid <- expand.grid(x = seq(l, m, length.out = n), y = seq(l, m, length.out = n)) -->
-
-<!-- # Calculate the distance from each point to the diagonal line y = x -->
-<!-- grid <- grid %>% -->
-<!--   mutate(distance = abs(x - y)) -->
-
-<!-- p1.4 <- ggplot() + -->
-<!--   geom_raster(data=grid, aes(x, y, fill = distance), alpha=0.4) + -->
-<!--   scale_fill_gradient(low = "pink", high = "lightblue", guide="none") + -->
-<!--   # annotate("polygon", x = c(l, m, m), y = c(l, l, m), alpha=0.3, fill="lightblue") + -->
-<!--   # annotate("polygon", x = c(l, l, m), y = c(l, m, m), alpha=0.3, fill="pink") + -->
-<!--   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   geom_point(data=data4, aes(x=P1, y=P2), fill=metric_col, size=ps, shape=21, position = position_jitter(width = 0.01, height = 0.01, seed=0)) + -->
-<!--   # scale_fill_manual(values=metric_col) +  -->
-<!--   geom_segment(data=data4[data4$metric=="ARI",], aes(x = P1-0.03, y = P2+0.18, xend = P1-0.01, yend = P2+0.05), -->
-<!--                arrow = arrow(length = unit(0.02, "npc")), color = "black") + -->
-<!--   xlim(l,m) + ylim(l,m) + -->
-<!--   geom_text(data=data4[data4$metric=="ARI",], aes(x = P1-0.08, y = P2+0.2), label="ARI", hjust = 0, vjust = 0, color = "black") + -->
-<!--   labs(title="Chance Agreement Neutrality", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal()  -->
-<!-- p1.4 -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- legend <- get_legend(p1.1) -->
-<!-- svg("FigS1.svg", width=12.5, height=3) -->
-<!-- ps1 <- plot_grid(p1.1 + theme(legend.position = "none"),  -->
-<!--                 p1.2 + theme(legend.position = "none"),  -->
-<!--                 p1.3 + theme(legend.position = "none"),  -->
-<!--                 p1.4 + theme(legend.position = "none"),  -->
-<!--                 legend, ncol = 5, -->
-<!--                 rel_widths = c(1,1,1,1,0.3)) -->
-<!-- plot(ps1) -->
-<!-- dev.off() -->
-<!-- ``` -->
-
-<!-- ## Metric-centric view -->
-<!-- ```{r} -->
-<!-- data1$properties <- "Homogeneity" -->
-<!-- data2$properties <- "Completeness" -->
-<!-- data3$properties <- "Class size sensitivity" -->
-<!-- data4$properties <- "Chance agreement neutrality" -->
-<!-- data <- rbind(data1, data2, data3, data4) -->
-<!-- data$properties <- factor(data$properties, levels=c("Homogeneity", "Completeness", "Class size sensitivity", "Chance agreement neutrality")) -->
-
-<!-- data <- data %>% pivot_longer(cols=c('P1', 'P2'), names_to = "solution", values_to = "value")  -->
-
-
-<!-- pb <- ggplot(data, aes(x = solution, y = value, color=properties)) +  -->
-<!--   geom_point(size=2) + -->
-<!--   geom_line(aes(group = properties)) + -->
-<!--   theme_minimal() + -->
-<!--   facet_wrap(~metric, scales = "free", ncol = 5) + -->
-<!--   labs(color="Desirable properties", y="Value", x="Solution") + -->
-<!--   theme(legend.position = "bottom", legend.key.height = unit(0.3, "cm")) + -->
-<!--   theme(legend.margin = margin(t = -10, r = 0, b = 0, l = 0, unit = "pt")) + -->
-<!--   guides(color = guide_legend(nrow = 2), byrow = TRUE) -->
-
-<!-- pb -->
-
-<!-- svg("FigS1_metric_centric.svg", width=7, height=2) -->
-<!-- plot(pb) -->
-<!-- dev.off() -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-
-<!-- ``` -->
-
-<!-- # Figure 1.2 -->
-<!-- ```{r} -->
-<!-- # Sample data -->
-<!-- cc <- c(1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2) -->
-<!-- cc <- as.factor(cc) -->
-
-<!-- ss1 <- c(1,1,1,1,1,1,2,2,2,2,1,1,1,1,2,2) -->
-<!-- ss1 <- as.factor(ss1) -->
-<!-- ss1_value <- evaluation_clustering(true_labels=cc, clustering=ss1, metrics=c("ARI","RI"))$metrics -->
-
-<!-- ss2 <- c(1,1,1,1,1,1,1,1,2,2,1,1,2,2,2,2) -->
-<!-- ss2 <- as.factor(ss2) -->
-<!-- ss2_value <- evaluation_clustering(true_labels=cc, clustering=ss2, metrics=c("ARI","RI"))$metrics -->
-
-<!-- data <- data.frame(metric=c(), value=c(), ss_idx=c()) -->
-<!-- n <- 1000 -->
-<!-- set.seed(12345) -->
-<!-- # set.seed(111) -->
-<!-- set.seed(121) -->
-<!-- for (i in 1:n) { -->
-<!--   ss <- sample(as.numeric(cc), size=length(cc), replace=FALSE) -->
-<!--   ss <- as.factor(ss) -->
-<!--   if(i == 33){a <- ss} -->
-<!--   ss_value <- evaluation_clustering(true_labels=cc, clustering=ss, metrics=c("ARI","RI"))$metrics -->
-<!--   colnames(ss_value) <- c("metric", "value") -->
-<!--   ss_value$ss_idx <- i -->
-<!--   ss_value <- ss_value %>% filter(metric %in% c("ARI", "RI")) -->
-<!--   if(abs(abs(ss_value["ARI", "value"]) - abs(ss_value["RI", "value"])) < 0.3){ -->
-<!--     print("******************************************") -->
-<!--     print(ss) -->
-<!--   } -->
-<!--   data <- rbind(data, ss_value) -->
-<!-- } -->
-
-<!-- m <- 1 -->
-<!-- p2 <- data %>% filter(metric %in% c("ARI", "RI")) %>% -->
-<!--   spread(key=metric, value=value) %>% -->
-<!--   ggplot(aes(x=ARI, y=RI)) + -->
-<!--   geom_point(size=2) + -->
-<!--   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   annotate("polygon", x = c(0, m, m), y = c(0, 0, m), alpha=0.3, fill="lightblue") + -->
-<!--   annotate("polygon", x = c(0, 0, m), y = c(0, m, m), alpha=0.3, fill="pink") + -->
-<!--   # labs(title="Size imbalance effect", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal() -->
-
-<!-- p2 -->
-<!-- ``` -->
-
-<!-- # Figure 2 -->
-<!-- ```{r} -->
-<!-- # Sample data -->
-<!-- cc <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3) -->
-<!-- cc <- as.factor(cc) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- data <- data.frame(metric=c(), value=c(), ss_idx=c()) -->
-<!-- n <- 100 -->
-<!-- # set.seed(12345) -->
-<!-- # set.seed(111) -->
-<!-- set.seed(121) -->
-<!-- for (i in 1:n) { -->
-<!--   ss <- sample(unique(as.numeric(cc)), size=length(cc), replace=TRUE) -->
-<!--   ss <- as.factor(ss) -->
-<!--   if(i == 33){a <- ss} -->
-<!--   ss_value <- evaluation_clustering(true_labels=cc, clustering=ss, metrics=c("ARI","AMI","MI"))$metrics -->
-<!--   colnames(ss_value) <- c("metric", "value") -->
-<!--   ss_value$ss_idx <- i -->
-<!--   ss_value <- ss_value %>% filter(metric %in% c("ARI", "ARI2", "AW", "AV", "MI", "AMI", "AW2", "AV2")) -->
-<!--   data <- rbind(data, ss_value) -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- p2 <- data %>% filter(metric %in% c("ARI", "ARI2")) %>% -->
-<!--   spread(key=metric, value=value) %>% -->
-<!--   ggplot(aes(x=ARI, y=ARI2)) + -->
-<!--   geom_point(size=2) + -->
-<!--   # geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   # annotate("polygon", x = c(0, m, m), y = c(0, 0, m), alpha=0.3, fill="lightblue") + -->
-<!--   # annotate("polygon", x = c(0, 0, m), y = c(0, m, m), alpha=0.3, fill="pink") + -->
-<!--   # labs(title="Size imbalance effect", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal() -->
-
-<!-- p2 -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- p2 <- data %>% filter(metric %in% c("AW", "AV")) %>% -->
-<!--   spread(key=metric, value=value) %>% -->
-<!--   ggplot(aes(x=AW, y=AV)) + -->
-<!--   geom_point(size=2) + -->
-<!--   # geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   # annotate("polygon", x = c(0, m, m), y = c(0, 0, m), alpha=0.3, fill="lightblue") + -->
-<!--   # annotate("polygon", x = c(0, 0, m), y = c(0, m, m), alpha=0.3, fill="pink") + -->
-<!--   # labs(title="Size imbalance effect", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal() -->
-
-<!-- p2 -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- p2 <- data %>% filter(metric %in% c("AW2", "AV2")) %>% -->
-<!--   spread(key=metric, value=value) %>% -->
-<!--   ggplot(aes(x=AW2, y=AV2)) + -->
-<!--   geom_point(size=2) + -->
-<!--   # geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   # annotate("polygon", x = c(0, m, m), y = c(0, 0, m), alpha=0.3, fill="lightblue") + -->
-<!--   # annotate("polygon", x = c(0, 0, m), y = c(0, m, m), alpha=0.3, fill="pink") + -->
-<!--   # labs(title="Size imbalance effect", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal() -->
-
-<!-- p2 -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- p2 <- data %>% filter(metric %in% c("ARI", "MI")) %>% -->
-<!--   spread(key=metric, value=value) %>% -->
-<!--   ggplot(aes(x=ARI, y=MI)) + -->
-<!--   geom_point(size=2) + -->
-<!--   # geom_abline(intercept=0, slope=1, linetype="dashed", color="black") + -->
-<!--   # annotate("polygon", x = c(0, m, m), y = c(0, 0, m), alpha=0.3, fill="lightblue") + -->
-<!--   # annotate("polygon", x = c(0, 0, m), y = c(0, m, m), alpha=0.3, fill="pink") + -->
-<!--   # labs(title="Size imbalance effect", x="P1", y="P2", fill="Metric") + -->
-<!--   theme_minimal() -->
-
-<!-- p2 -->
-<!-- ``` -->
-
-ARI2 has some issues...
-AW and AV always have the same sign. But AW2 and AV2 can have different sign, making ARI2 sometimes unrealistic...
-Calculate AW2 and AV2 first using unadjusted version?
-
