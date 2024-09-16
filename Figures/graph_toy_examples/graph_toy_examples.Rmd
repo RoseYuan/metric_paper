@@ -10,113 +10,23 @@ suppressPackageStartupMessages({
   library(patchwork)
   library(igraph)
   library(ggnetwork)
+  library(scales)
 })
 knitr::opts_chunk$set(dev="CairoPNG")
+devtools::load_all("~/bioinfo/robinson/siyuan/ClusteringMetrics/")
 ```
 
 # Functions
 
 ```{r}
-getCohesion <- function(g, classAttr="class", directed=FALSE){
-  if(!is(g,"igraph")) g <- knn2graph(g, directed=directed)
-  if(!is.null(classAttr)){
-    names(cls) <- cls <- unique(vertex_attr(g,classAttr))
-    return(sapply(cls, FUN=function(cl){
-      g1 <- subgraph(g, v=which(vertex_attr(g,classAttr)==cl))
-      getCohesion(g1, NULL)
-    }))
-  }
-  cohesion(g)
-}
-
-getAdhesion <- function(g, classAttr="class", directed=FALSE){
-  if(!is(g,"igraph")) g <- knn2graph(g, directed=directed)
-  if(!is.null(classAttr)){
-    names(cls) <- cls <- unique(vertex_attr(g,classAttr))
-    return(sapply(cls, FUN=function(cl){
-      g1 <- subgraph(g, v=which(vertex_attr(g,classAttr)==cl))
-      getAdhesion(g1, NULL)
-    }))
-  }
-  adhesion(g)
-}
-
-getModularity <- function(g, classAttr="class", directed=FALSE){
-  if(!is(g,"igraph")) g <- knn2graph(g, directed=directed)
-  cls <- vertex_attr(g,classAttr)
-  modularity(g, cls)
-}
-
-getMeanShortestPath <- function(g, classAttr="class", directed=FALSE){
-  if(!is(g,"igraph")) g <- knn2graph(g, directed=directed)
-  if(!is.null(classAttr)){
-    names(cls) <- cls <- unique(vertex_attr(g,classAttr))
-    return(sapply(cls, FUN=function(cl){
-      g1 <- subgraph(g, v=which(vertex_attr(g,classAttr)==cl))
-      getMeanShortestPath(g1, NULL, directed=directed)
-    }))
-  }
-  gc <- decompose.graph(g)
-  return(length(gc)+sum(pmax(1L,sapply(gc, directed=directed, FUN=mean_distance),na.rm=TRUE)))
-}
-
-getIsi <- function(knn, classAttr="class", directed=FALSE){
-  stopifnot(is.list(knn) && all(c("class","index") %in% names(knn)))
-  knn$nncl <- matrix(knn$class[knn$index], nrow=nrow(knn$index))
-  k <- ncol(knn$index)
-  p <- sapply(unique(knn$class), FUN=function(x){
-    rowSums(knn$nncl==x)/k
-  })
-  SI <- rowSums(p^2)
-  data.frame(ISI=1/SI, class=knn$class)
-}
-
-# neighborhood class over-representation
-getNCOR <- function(knn, classAttr="class"){
-  stopifnot(is.list(knn) && all(c("class","index") %in% names(knn)))
-  knn$nncl <- matrix(knn$class[knn$index], nrow=nrow(knn$index))
-  k <- ncol(knn$index)
-  expected <- k*as.numeric(table(knn$class))/length(knn$class)
-  enr <- rowSums(knn$nncl==knn$class)/expected[as.integer(knn$class)]
-  data.frame(NCOR=log2(enr), class=knn$class)
-}
-
-# neighborhood purity
-getNP <- function(knn, classAttr="class"){
-  stopifnot(is.list(knn) && all(c("class","index") %in% names(knn)))
-  knn$nncl <- matrix(knn$class[knn$index], nrow=nrow(knn$index))
-  p <- rowSums(knn$nncl==knn$class)/ncol(knn$index)
-  data.frame(purity=p, class=knn$class)
-}
-
-getGraphStats <- function(knn, doCohesion=TRUE, classAttr="class"){
-  names(cls) <- cls <- unique(knn$class)
-  k <- ncol(knn$index)
-  g <- knn2graph(knn, directed=FALSE)
-  gc <- lapply(cls, FUN=function(cl){
-    subgraph(g, v=which(vertex_attr(g,classAttr)==cl))
-  })
-  if(doCohesion){
-    coh <- getCohesion(g)
-    ad <- getAdhesion(g)
-  }else{
-    ad <- coh <- rep(NA_real_,length(gc))
-  }
-  m <- getModularity(g)
-  isi <- getIsi(knn)
-  mean.isi <- aggregate(isi[,1], by=list(class=isi[,2]), mean)[,2]
-  # ncor <- getNCOR(knn)
-  # mean.ncor <- aggregate(ncor[,1], by=list(class=ncor[,2]), mean)[,2]
-  np <- getNP(knn)
-  mean.np <- aggregate(np[,1], by=list(class=np[,2]), mean)[,2]
-  msp <- getMeanShortestPath(g)
-  nn <- sapply(gc, vcount)
-  ne <- sapply(gc, ecount)
-  compactness <- sqrt(nn)/(msp)
-  data.frame(metric=rep(c("modularity","cohesion","adhesion","isi","meanShortPath","nn","ne","purity","compactness"),
-                        c(1,rep(length(gc), 8))),
-             level=c("graph",rep(paste0("class",seq_along(gc)),8)),
-             value=as.numeric(c(m,coh,ad,mean.isi,msp,ne,nn,mean.np,compactness)))
+getGraphStats <- function(knn){
+  gm <- ClusteringMetrics::getGraphClassMetrics(knn, knn$class, metrics=c("SI","ISI","NP","AMSP","PWC","NCE","cohesion","adhesion"))
+  g <- knn2graph(knn)
+  m <- cbind(class="graph", as.data.frame(t(rep(NA_real_,ncol(gm)-1))))
+  colnames(m) <- colnames(gm)
+  gm <- rbind(gm,m)
+  gm$modularity <- c(rep(NA_real_, nrow(gm)-1), igraph::modularity(g, knn$class))
+  gm
 }
 
 df2knn <- function(d1, k=7, ...){
@@ -132,14 +42,6 @@ knn2graph <- function(knn, directed=FALSE){
   g
 }
 
-plotGraph <- function(d1, k=7, title=NULL){
-  g <- knn2graph(df2knn(d1, k=k))
-  gn <- ggnetwork(g, layout=as.matrix(d1[,1:2]))
-  p <- ggplot(gn, aes(x = x, y = y, xend = xend, yend = yend)) + theme_blank() + theme(legend.position = "right") +
-  geom_edges(alpha=0.5, colour="grey") + geom_nodes(aes(colour=class, shape=class), size=2.5)
-  if(!is.null(title)) p  <- p + ggtitle(title)
-  p
-}
 plotGraphs <- function(d, k=7){
   gn <- dplyr::bind_rows(lapply(split(d[,-1],d$graph), FUN=function(d1){
     g <- knn2graph(df2knn(d1, k=k))
@@ -180,30 +82,28 @@ d3 <- data.frame(x=c(rnorm(20, -2, sd=sd), rnorm(20, -1.25, sd=sd), rnorm(20, 0.
                  y=c(rnorm(20, 0.2, sd=sd), rnorm(20, 0.5, sd=sd), rnorm(20, 2, sd=sd),rnorm(20, 1.3, sd=0.75*sd),rnorm(20, -0.5, sd=0.75*sd), rnorm(60,-2,sd=sd)),
                  class=rep(1:2,c(100,60)))
 
-d <- dplyr::bind_rows(list(graph1=d0, graph2=d1, graph3=d2, graph4=d3), .id="graph")
+d <- dplyr::bind_rows(list(graph4=d0, graph5=d1, graph6=d2, graph7=d3), .id="graph")
 ```
 
 
 ```{r, fig.width=12, fig.height=6}
-gs <- lapply(list(graph1=d0, graph2=d1, graph3=d2, graph4=d3), FUN=function(x) getGraphStats(df2knn(x, k = 5)))
+gs <- lapply(list(graph4=d0, graph5=d1, graph6=d2, graph7=d3), FUN=function(x) getGraphStats(df2knn(x, k = 5)))
 gs2 <- dplyr::bind_rows(gs, .id="graph")
-gs2 <- rbind(gs2[!(gs2$metric %in% c("nn","ne","spread2")),])
-gs2$metric <- factor(gs2$metric, c("modularity", "cohesion", "adhesion", "meanShortPath", "compactness", "isi", "purity"))
-gs2 <- gs2[which(!(gs2$metric %in% c("adhesion", "meanShortPath"))),]
+colnames(gs2) <- gsub("^ISI","LISI",colnames(gs2))
+gs3 <- reshape2:::melt.data.frame(gs2, id.vars = c("graph","class"))
+gs3$variable <- factor(gs3$variable, c("modularity", "cohesion", "adhesion", "AMSP", "LISI", "SI", "NP", "PWC", "NCE"))
+gs3 <- gs3[which(!(gs3$variable %in% c("adhesion","NCE"))),]
+gs3$level <- factor(gs3$class, c("graph","1","2"), c("graph","class1","class2"))
 
-p1 <- ggplot(gs2, aes(graph, value, fill=level)) + geom_col(position="dodge") + facet_wrap(~metric, scales="free_y", nrow=1) + theme_classic() + scale_fill_manual(values=c(class1="#F8766D", class2="#00BFC4", graph=scales::hue_pal()(3)[3]))
-p1b <- ggplot(gs2, aes(graph, value, colour=level, group=level)) + geom_point() + geom_line() + 
-  facet_wrap(~metric, scales="free_y", nrow=1) + theme_classic() + 
+p1b <- ggplot(gs3, aes(graph, value, colour=level, group=level)) + geom_point() + geom_line() + 
+  facet_wrap(~variable, scales="free_y", nrow=1) + theme_classic() + 
   scale_colour_manual(values=c(class1="#F8766D", class2="#00BFC4", graph="black")) +
-  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5),
+        axis.title.x=element_blank()) + ylim(0,NA) +
+   geom_point(data=data.frame(variable=factor("PWC",levels=levels(gs3$variable)),
+                              level="graph", graph="graph4", value=0.15), colour="white")
 ```
 
-
-```{r, fig.width=9, fig.height=4.5}
-pdf("graph_compactness.pdf", width=9, height=4.5)
-plotGraphs(d)/(p1b + ylim(0,NA)) + plot_layout(heights=c(3,2))
-dev.off()
-```
 
 
 
@@ -231,25 +131,30 @@ db <- dplyr::bind_rows(list(graph1=d4, graph2=d5, graph3=d6), .id="graph")
 
 gs <- lapply(list(graph1=d4, graph2=d5, graph3=d6), FUN=function(x) getGraphStats(df2knn(x, k = 5)))
 gs2 <- dplyr::bind_rows(gs, .id="graph")
-gs2 <- gs2[!(gs2$metric %in% c("nn","ne","spread2")),]
-gs2$metric <- factor(gs2$metric, c("modularity", "cohesion", "adhesion", "meanShortPath", "compactness", "isi", "ncor", "purity"))
-gs2 <- gs2[which(!(gs2$metric %in% c("adhesion", "meanShortPath"))),]
-
+colnames(gs2) <- gsub("^ISI","LISI",colnames(gs2))
+gs3 <- reshape2:::melt.data.frame(gs2, id.vars = c("graph","class"))
+gs3$variable <- factor(gs3$variable, c("modularity", "cohesion", "adhesion", "AMSP", "LISI", "SI", "NP", "PWC", "NCE"))
+gs3 <- gs3[which(!(gs3$variable %in% c("adhesion","NCE"))),]
+gs3$level <- factor(gs3$class, c("graph",paste0("class",1:4)))
 
 cols <- c(setNames(scales::hue_pal()(length(unique(db$class))), unique(db$class)),
           graph="black")
-p1 <- ggplot(gs2, aes(graph, value, fill=level)) + geom_col(position="dodge") + 
-  facet_wrap(~metric, scales="free_y", nrow=1) + theme_classic() + scale_fill_manual(values=cols)
-p1b <- ggplot(gs2, aes(graph, value, colour=level, group=level)) + geom_point() + geom_line() + 
-  facet_wrap(~metric, scales="free_y", nrow=1) + theme_classic() + 
-  scale_colour_manual(values=cols) +
-  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+
+p2 <- ggplot(gs3, aes(graph, value, colour=level, group=level)) + geom_point() + geom_line() + 
+  facet_wrap(~variable, scales="free_y", nrow=1) + theme_classic() + 
+  scale_colour_manual(values=cols)  + 
+  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5),
+        axis.title.x=element_blank())
 ```
 
 
-```{r, fig.width=9, fig.height=5.5}
-pdf("graph_neighborhood.pdf", width=9, height=5.5)
-plotGraphs(db)/(p1b + ylim(0,NA)) + plot_layout(heights=c(7,4))
+```{r, fig.width=9, fig.height=9}
+pdf("graph_toy_examples.pdf", width=9, height=9)
+cowplot::plot_grid(
+  (plotGraphs(db)/p2 + scale_y_continuous(breaks=breaks_pretty(n = 4), limits=c(0,NA))) + plot_layout(heights=c(3.2,2)),
+  (plotGraphs(d)/p1b + scale_y_continuous(breaks=breaks_pretty(n = 4), limits=c(0,NA))) + plot_layout(heights=c(4.2,3)),
+  nrow=2, labels="auto", rel_heights = c(7,6)
+)
 dev.off()
 ```
 

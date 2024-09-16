@@ -1,0 +1,303 @@
+---
+title: "Measure clustering properties across simulations"
+output: html_document
+date: "2024-08-13"
+---
+
+```{r setup}
+suppressPackageStartupMessages({
+  library(BiocParallel)
+  library(ComplexHeatmap)
+  library(BiocNeighbors)
+  library(igraph)
+})
+knitr::opts_chunk$set(dev="CairoPNG")
+devtools::load_all("../../../ClusteringMetrics/")
+```
+
+```{r}
+g <- expand.grid(Ns=c("100,100,100","200,100,50","300,60,20","100,30,600","300,50,50,50","100,100,100,100"),
+                 classDiff=c("1,2,2","1,1,1","0,1,2","1,1,2","0.5,0.5,2","1,1,1,1,1,1","1,1,2,2,1,2","2,3,1","2,2,3"),
+                 Sds=c(0.5,1,2,"1,2,1"), ndims=c(2,3),
+                 spread=c("1,2,1","1,1,1","2,1,2","3,2,1","1,1,2,1","1,1,4"),
+                 rndFn=c("rnorm","rlnorm"), seed=c(123,42))
+gi <- apply(g,2,FUN=function(x) lengths(strsplit(x,",")))
+w <- which(gi[,5]==gi[,1] & (gi[,3]==1 | gi[,3]==gi[,1]) &
+               gi[,2]==gi[,1] & g[,4]<=(gi[,1]-1))
+g <- g[w,]
+gi <- gi[w,]
+saveRDS(g, "simParams.rds")
+sims <- lapply(seq_len(nrow(g)),FUN=function(i){
+  set.seed(g[i,7])
+  mockData( Ns=as.numeric(strsplit(as.character(g[i,1]),",")[[1]]),
+            classDiff=as.numeric(strsplit(as.character(g[i,2]),",")[[1]]),
+            Sds=as.numeric(strsplit(as.character(g[i,3]),",")[[1]]),
+            ndims=g[i,4], rndFn=get(as.character(g[i,6])),
+            spread=as.numeric(strsplit(as.character(g[i,5]),",")[[1]])
+            )
+})
+saveRDS(sims, "simulations.rds")
+```
+
+```{r}
+sims <- readRDS("simulations.rds")
+ge.mets <- dplyr::bind_rows(bplapply(sims, BPPARAM=MulticoreParam(3, progress=TRUE), FUN=function(x){
+  gm <- ClusteringMetrics::getGraphClassMetrics(x[,-ncol(x)], x[,ncol(x)], k=5)
+  colnames(gm)[2:ncol(gm)] <- paste0("graph.",colnames(gm)[2:ncol(gm)])
+  em <- ClusteringMetrics::getEmbeddingClassMetrics(x[,-ncol(x)], x[,ncol(x)])
+  colnames(em)[2:ncol(em)] <- paste0("embedding.",colnames(em)[2:ncol(em)])
+  cbind(em,gm[,-1])
+}), .id="simulation")
+saveRDS(ge.mets, "graphEmbClassMetrics.rds")
+
+embGlobal.mets <- dplyr::bind_rows(bplapply(sims, BPPARAM=MulticoreParam(3, progress=TRUE), FUN=function(x){
+  em <- ClusteringMetrics::getEmbeddingGlobalMetrics(x[,-ncol(x)], x[,ncol(x)])
+  colnames(em) <- paste0("embedding.",colnames(em))
+  em
+}), .id="simulation")
+saveRDS(embGlobal.mets, "embGlobalMetrics.rds")
+
+
+cl.mets <- dplyr::bind_rows(bplapply(sims, BPPARAM=MulticoreParam(3, progress=TRUE), FUN=function(x){
+  k <- 2:6
+  names(k) <- paste0("kmeans.",k)
+  labels <- x[,ncol(x)]
+  x <- x[,-ncol(x)]
+  d1 <- dplyr::bind_rows(lapply(k, FUN=function(k){
+    cl <- kmeans(x, k, nstart=3L)$cluster
+    pm <- as.data.frame(ClusteringMetrics::getPartitionMetrics(labels, cl))
+    pm$nbClusters <- length(unique(cl))
+    pm
+  }), .id="clustering")
+  g <- ClusteringMetrics:::.emb2snn(as.matrix(x), k=5)
+  cl <- as.integer(igraph::cluster_louvain(g)$membership)
+  pm <- as.data.frame(ClusteringMetrics::getPartitionMetrics(labels, cl))
+  pm$nbClusters <- length(unique(cl))
+  pm$clustering <- "louvain.k5.res1"
+  d1 <- rbind(d1, pm)
+  cl <- as.integer(igraph::cluster_louvain(g, resolution=2)$membership)
+  pm <- as.data.frame(ClusteringMetrics::getPartitionMetrics(labels, cl))
+  pm$nbClusters <- length(unique(cl))
+  pm$clustering <- "louvain.k5.res2"
+  d1 <- rbind(d1, pm)
+  cl <- as.integer(igraph::cluster_louvain(g, resolution=0.5)$membership)
+  pm <- as.data.frame(ClusteringMetrics::getPartitionMetrics(labels, cl))
+  pm$nbClusters <- length(unique(cl))
+  pm$clustering <- "louvain.k5.res05"
+  d1 <- rbind(d1, pm)
+  d1
+}), .id="simulation")
+saveRDS(cl.mets, "globalClusterMetrics.rds")
+```
+
+```{r}
+cl.mets <- readRDS("globalClusterMetrics.rds")
+ge.mets <- readRDS("graphEmbClassMetrics.rds")
+ge.glb <- aggregate(ge.mets[,grep("graph",colnames(ge.mets))], by=ge.mets[,1,drop=FALSE], FUN=mean)
+embGlobal.mets <- readRDS("embGlobalMetrics.rds")
+m <- merge(embGlobal.mets, cl.mets, by="simulation")
+m <- merge(m, ge.glb, by="simulation")
+# remove metrics not discussed in the paper:
+for(f in c("MMM","MHM","Mirkin","VDM","VI")) m[[f]] <- NULL
+```
+
+
+
+```{r}
+toInvert <- c("embedding.pnSW", "graph.AMSP", "graph.PWC")
+for(f in toInvert){
+  m[,f] <- -m[,f]
+  colnames(m) <- gsub(paste0("^",f,"$"), paste0("-",f), colnames(m))
+}
+
+sp <- readRDS("simParams.rds")
+sp$sizeImbalance <- sapply(strsplit(levels(sp$Ns), ","), FUN=function(x){
+  x <- as.numeric(x)
+  sqrt(sum((x/sum(x))^2)-1/length(x))
+})[as.integer(sp$Ns)]
+sp$signal2noise <- mapply(cd=strsplit(as.character(sp$classDiff), ","),
+                           sd=strsplit(as.character(sp$Sds), ","), FUN=function(cd,sd){
+  mean(as.numeric(cd))/mean(as.numeric(sd))
+})
+sp$meanSpread <- sapply(strsplit(levels(sp$spread), ","), FUN=function(x){
+  mean(as.numeric(x))
+})[as.integer(sp$spread)]
+
+
+m$sizeImbalance <- sp[m$simulation, "sizeImbalance"]
+m$signal2noise <- sp[m$simulation, "signal2noise"]
+m$meanSpread <- sp[m$simulation, "meanSpread"]
+
+
+notMetrics <- c("simulation", "nbClusters", "clustering", "meanClassDiff", "sizeImbalance", "N", "meanSpread", "signal2noise")
+allMetrics <- setdiff(colnames(m),notMetrics)
+
+explanatory <- c( "signal2noise", "meanSpread", "sizeImbalance", "nbClusters")
+m2 <- m
+colnames(m) <- gsub("^-","",colnames(m))
+res <- lapply(setNames(allMetrics, allMetrics), FUN=function(x){
+  if(grepl("embedding|graph", x)) explanatory <- setdiff(explanatory, "nbClusters")
+  x <- gsub("^-","",x)
+  form <- as.formula(paste0(x,"~", paste0(explanatory, collapse="+")))
+  full <- lm(form, data=m)
+  x <- sapply(setNames(explanatory,explanatory), FUN=function(lo){
+    exp2 <- setdiff(explanatory, lo)
+    form <- as.formula(paste0(x,"~", paste0(exp2, collapse="+")))
+    mod <- lm(form, data=m)
+    pmax(summary(full)$r.squared-summary(mod)$r.squared,0)
+  })
+  x <- data.frame(row.names=names(x), ve=x, t=coef(summary(full))[-1,3],
+                  p=coef(summary(full))[-1,4])
+  if(!("nbClusters" %in% row.names(x))){
+    x <- rbind(x, data.frame(row.names="nbClusters", ve=0, t=0, p=1))
+  }
+  x
+})
+
+
+p <- as.data.frame(t(sapply(res, FUN=function(x){ x$p })))
+p[p<0.0001] <- 0.0001
+t <- as.data.frame(t(sapply(res, FUN=function(x){ x$t })))
+ve <- as.data.frame(t(sapply(res, FUN=function(x){ x$ve })))
+colnames(p) <- colnames(t) <- colnames(ve) <- row.names(res[[1]])
+ss <- sign(t)*(p<0.05)
+```
+
+```{r}
+d <- data.frame(row.names=allMetrics,
+                type=factor(10*grepl("embedding",allMetrics)+grepl("graph",allMetrics), c(0,1,10), c("partition","graph","embedding")),
+                property=factor(grepl("MI|H$|NP$|PWC|SI|NCE",allMetrics)-grepl("^AWC|^WC|EC|HC$|AMSP|cohesion|compact",allMetrics),-1:1,c("completeness\n/compactness","mixed","homogeneity")),
+                "correctedForChance"=grepl("^A|NCR|NCE|^E|^VM",allMetrics)
+                )
+hacols <- list(correctedForChance=c("FALSE"="white", "TRUE"="darkblue"),
+               property=setNames(RColorBrewer::brewer.pal(3,"Dark2")[c(2,1,3)], levels(d$property)),
+               type=setNames(c("#DDCC77", "#CC6677", "#4477AA"), levels(d$type)))
+```
+
+
+```{r}
+leg <- c(0,0.01,0.1,0.3,0.8)
+hve <- Heatmap(sqrt(sqrt(t(ve))), name="variance\nexplained", col=viridis::viridis(50), heatmap_legend_param=list(at=sqrt(sqrt(leg)), labels=leg), row_title="var.\nexpl.", row_names_gp=gpar(fontsize=10), column_names_gp=gpar(fontsize=10), cluster_rows = FALSE)
+# leg <- c(0,5,15,35,80)
+# ht <- Heatmap(sqrt(abs(t(t))), name="abs(t-value)", col=viridis::viridis(50), heatmap_legend_param=list(at=sqrt(leg), labels=leg), row_title="abs(t-value)")
+# pdis <- t(p)<0.05
+# mode(pdis) <- "integer"
+# hpdis <- Heatmap(pdis, name="p-value", col=c("lightgrey","darkred"), row_title="pVal", heatmap_legend_param = list(breaks=c(0,1), labels=c("<0.05","n.s.")), bottom_annotation=HeatmapAnnotation(df=d[,2:1], col=hacols), cluster_rows = FALSE,
+#                  row_names_gp=gpar(fontsize=10), column_names_gp=gpar(fontsize=10))
+ss2 <- t(ss)
+ss2 <- matrix(factor(as.integer(ss2),-1:1,c("negative","n.s.","positive")), nrow=nrow(ss2))
+dimnames(ss2) <- dimnames(ss)[2:1]
+
+hss <- Heatmap(ss2, name="direction", col=c("negative"="darkred","n.s."="lightgrey","positive"="darkblue"),
+               row_title="direction\n(p<0.05)", bottom_annotation=HeatmapAnnotation(df=d[,3:1], col=hacols), cluster_rows = FALSE,
+        row_names_gp=gpar(fontsize=10), column_names_gp=gpar(fontsize=10))
+hp <- Heatmap(-log10(t(p)), name="-log10\np-value", col=viridis::viridis(50), row_title="-log10\np-value")
+
+cc <- cor(m2[,allMetrics], use="pairwise")
+cc.sp <- cor(m2[,allMetrics], method="spearman")
+```
+
+
+
+```{r, fig.width=8, fig.height=8}
+pdf("metrics_across_simulations.pdf", width = 8, height = 8)
+Heatmap(cc, name="Cor", row_title="Pearson correlation between metrics", col=viridis::inferno(100), row_names_gp=gpar(fontsize=10),
+ column_names_gp=gpar(fontsize=10), top_annotation=HeatmapAnnotation(df=d[,-3], col=hacols),
+ right_annotation=rowAnnotation(df=d[,2,drop=FALSE], col=hacols, show_legend=FALSE, show_annotation_name=FALSE)) %v% 
+  hve %v% hss
+dev.off()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+disct <- function(x, n=10){
+  if(is.data.frame(x)) return(as.data.frame(lapply(x, disct, n=n)))
+  cc <- unique(cut(x,breaks=quantile(x,p=(0:n)/n), include.lowest = TRUE))
+  as.integer(cc)
+}
+mdi <- disct(m2[,allMetrics])
+colnames(mdi) <- gsub("^-|^X\\.","",colnames(mdi))
+mdi <- cbind(mdi, m[,explanatory])
+resDi <- lapply(setNames(allMetrics, allMetrics), FUN=function(x){
+  if(grepl("embedding|graph", x)) explanatory <- setdiff(explanatory, "nbClusters")
+  x <- gsub("^-","",x)
+  form <- as.formula(paste0(x,"~", paste0(explanatory, collapse="+")))
+  full <- lm(form, data=mdi)
+  x <- sapply(setNames(explanatory,explanatory), FUN=function(lo){
+    exp2 <- setdiff(explanatory, lo)
+    form <- as.formula(paste0(x,"~", paste0(exp2, collapse="+")))
+    mod <- lm(form, data=mdi)
+    pmax(summary(full)$r.squared-summary(mod)$r.squared,0)
+  })
+  x <- data.frame(row.names=names(x), ve=x, t=coef(summary(full))[-1,3],
+                  p=coef(summary(full))[-1,4])
+  if(!("nbClusters" %in% row.names(x))){
+    x <- rbind(x, data.frame(row.names="nbClusters", ve=0, t=0, p=1))
+  }
+  x
+})
+
+
+p <- as.data.frame(t(sapply(resDi, FUN=function(x){ x$p })))
+p[p<0.0001] <- 0.0001
+t <- as.data.frame(t(sapply(resDi, FUN=function(x){ x$t })))
+ve <- as.data.frame(t(sapply(resDi, FUN=function(x){ x$ve })))
+colnames(p) <- colnames(t) <- colnames(ve) <- row.names(resDi[[1]])
+```
+
+
+```{r}
+leg <- c(0,0.01,0.1,0.3,0.8)
+hve <- Heatmap(sqrt(sqrt(t(ve))), name="variance\nexplained", col=viridis::viridis(50), heatmap_legend_param=list(at=sqrt(sqrt(leg)), labels=leg), row_title="var.\nexpl.", row_names_gp=gpar(fontsize=10), column_names_gp=gpar(fontsize=10))
+leg <- c(0,5,15,35,80)
+ht <- Heatmap(sqrt(abs(t(t))), name="abs(t-value)", col=viridis::viridis(50), heatmap_legend_param=list(at=sqrt(leg), labels=leg), row_title="abs(t-value)")
+pdis <- t(p)<0.05
+mode(pdis) <- "integer"
+hpdis <- Heatmap(pdis, name="p-value", col=c("lightgrey","darkred"), row_title="pVal", heatmap_legend_param = list(breaks=c(0,1), labels=c("<0.05","n.s.")), bottom_annotation=HeatmapAnnotation(df=d[,2:1], col=hacols),
+                 row_names_gp=gpar(fontsize=10), column_names_gp=gpar(fontsize=10))
+hp <- Heatmap(-log10(t(p)), name="-log10\np-value", col=viridis::viridis(50), row_title="-log10\np-value")
+
+mdi2 <- mdi
+for(f in toInvert){
+  colnames(mdi2) <- gsub(paste0("^",f,"$"), paste0("-",f), colnames(mdi2))
+}
+
+cc <- cor(mdi2[,allMetrics], use="pairwise")
+cc.sp <- cor(mdi2[,allMetrics], method="spearman")
+```
+
+
+
+```{r, fig.width=8, fig.height=8}
+Heatmap(cc, name="Cor", row_title="Pearson correlation between metrics", col=viridis::inferno(100), row_names_gp=gpar(fontsize=10),
+ column_names_gp=gpar(fontsize=10), top_annotation=HeatmapAnnotation(df=d, col=hacols)) %v% 
+  hve %v% hpdis
+```
+
+```{r}
+sessionInfo()
+```
+
