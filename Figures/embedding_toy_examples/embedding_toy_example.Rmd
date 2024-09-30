@@ -194,3 +194,45 @@ pdf("embedding_toy_example.pdf", width=8, height=9)
  cowplot::plot_grid(p6, p5, nrow=2, rel_heights=c(1,1))
 dev.off()
 ```
+
+
+```{r}
+re <- data.frame(matrix(nrow = 0, ncol=6))
+for (r in c(10, 15, 20, 30, 40, 50, 60, 70, 80, 90)) {
+  re <- rbind(re, data.frame(r=r, method="kmeans", t(CDbw(data[,c("x","y")], as.integer(data$kmeans_label), r=r))))
+  re <- rbind(re, data.frame(r=r, method="HDBSCAN", t(CDbw(data[,c("x","y")], as.integer(data$hdbscan_label), r=r))))
+}
+
+re_long <- pivot_longer(re, cols = setdiff(colnames(re), c("r","method")), names_to = "metric")
+df <- re_long %>% 
+   mutate(metric = recode(metric, 
+                          "cdbw" = "CDbw", 
+                          "cohesion" = "CDbw cohesion",
+                          "sep" = "CDbw separation",
+                          "compactness" = "CDbw compactness",
+                          "dbcv" = "DBCV")) 
+
+df$metric<- gsub(" ", "\n", df$metric)
+
+ps <- df %>% 
+  ggplot(aes(x=r, y=value, color=method, group=method)) + 
+  geom_point() + theme_bw() + geom_line() +
+  facet_wrap(~metric, scales = "free_y") + theme_bw() +
+  theme(plot.margin = margin(1, 1, 0, 0), 
+        legend.position = "bottom",
+        strip.background=element_blank(),
+        legend.box.spacing = unit(0, "cm")) + 
+  labs(color="Method", x="Number of representatives", y="")
+ps
+```
+
+```{r}
+pdf("cdbw_r.pdf", width=6, height=4)
+ps
+dev.off()
+```
+
+```{r}
+
+```
+
