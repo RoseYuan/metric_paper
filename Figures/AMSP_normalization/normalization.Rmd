@@ -52,7 +52,7 @@ p <- ggplot(sims, aes(size, value, group=factor(k), colour=factor(k))) +
   scale_x_sqrt() + scale_y_sqrt() + theme_bw() +
   labs(x="Class size (# of vertices)", y="Mean shortest path",
        colour="k (# of\nnearest\nneighbors)")
-pdf("AMSP_simulated_sizes", width=8, height=5)
+pdf("AMSP_simulated_sizes.pdf", width=8, height=5)
 p
 dev.off()
 ```
