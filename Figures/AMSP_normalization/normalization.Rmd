@@ -1,0 +1,63 @@
+---
+title: "Normalization of the mean shortest path"
+output: html_document
+---
+
+```{r}
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(patchwork)
+  library(BiocParallel)
+})
+knitr::opts_chunk$set(dev="CairoPNG")
+devtools::load_all("~/bioinfo/robinson/siyuan/ClusteringMetrics/")
+```
+
+```{r, eval=FALSE}
+names(sizes) <- sizes <- c(0.5, (1:5)^2, 50, 100, 150, 200)
+names(ks) <- ks <- c(4,6,9,15)
+names(seeds) <- seeds <- c(123,1234,42)
+
+sims <- dplyr::bind_rows(bplapply(sizes, BPPARAM=MulticoreParam(4, progress=TRUE),
+                                  FUN=function(x){
+  si <- c(50,30)*x
+  e <- dplyr::bind_rows(lapply(seeds, FUN=function(s){
+    set.seed(s)
+    d <- mockData(N=si)
+    knn <- .emb2knn(as.matrix(d[,1:2]), k=max(ks))
+    e <- dplyr::bind_rows(lapply(ks, FUN=function(k){
+      g <- .nn2graph(lapply(knn, FUN=function(x){
+        if(is.matrix(x)) return(x[,seq_len(k)])
+        x
+      }), d$class)
+      m <- .igraphFunPerClass(g, directed=FALSE, FUN=.adjMeanShortestPath, normalize=FALSE)
+      res <- data.frame(class=names(m), value=as.numeric(m))
+      res$ne <- .igraphFunPerClass(g, directed=FALSE, FUN=igraph::ecount)
+      res
+    }), .id="k")
+    e$size <- si
+    e
+  }))
+}))
+saveRDS(sims, file="simulated_sizes.rds")
+```
+
+```{r, fig.width=8, fig.height=5}
+sims <- readRDS("simulated_sizes.rds")
+sims$class <- factor(sims$class, LETTERS[1:2], c("compact","spread"))
+sims$k <- as.integer(sims$k)
+p <- ggplot(sims, aes(size, value, group=factor(k), colour=factor(k))) + 
+  geom_smooth(method = "lm", show.legend=FALSE) + geom_point() + 
+  facet_wrap(~class, scales="free") + 
+  scale_x_sqrt() + scale_y_sqrt() + theme_bw() +
+  labs(x="Class size (# of vertices)", y="Mean shortest path",
+       colour="k (# of\nnearest\nneighbors)")
+pdf("AMSP_simulated_sizes.pdf", width=8, height=5)
+p
+dev.off()
+```
+
+```{r}
+sessionInfo()
+```
+
