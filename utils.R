@@ -79,32 +79,6 @@ pwc <- function(graph, label, label_idx){
   return(list(j1=j1, j1_frac=j1/l1, w1=w1, w1_frac=w1/l1))
 }
 
-cal_distance <- function(x, metric="Euclidean") {
-        if (metric == "Euclidean"){
-        dist.matrix <- stats::dist(x)
-    }else if(metric == "correlation"){
-        dist.matrix <- amap::Dist(x, method = "correlation")
-    }else if(metric == "manhattan"){
-        dist.matrix <- stats::dist(x,method = "manhattan")
-    }else if(metric == "cosine"){
-        dist.matrix <- stylo::dist.cosine(x)
-        }
-}
-# for a given distance matrix and given labels, calculate silhouette score, plot the silhouette distribution and average silhouette.
-silhouette_result <- function(dist.matrix, labels, title="", my_col=NULL){
-    suppressPackageStartupMessages({
-        require(cluster)
-        require(pals)
-    })
-    if (is.null(my_col)){
-        my_col <- unlist(polychrome())[1:max(as.numeric(as.factor(labels)))]
-    }
-
-    sil = silhouette(as.numeric(as.factor(labels)), dist.matrix)
-    p <- plot(sil, border=NA, col=my_col, main=title)
-    avg_sil <- mean(sil[, 3])
-    return(list("fig" = p, "avg" = avg_sil, "sil" = sil))
-}
 
 ##################
 # Visualization
@@ -229,52 +203,6 @@ cross_table_plot <- function(ground_truth, clusterings, a=1.3, b=5.7, c=2, m=0, 
 ##################
 # Seurat object related
 ##################
-
-# function to add ground truth to a Signac object, and check the cell id
-# df_label: a dataframe containing a barcode column and a label column
-add_labels <- function(sobj, df_label, barcode_col, label_col){
-    suppressPackageStartupMessages({
-        require(Signac)
-        require(Seurat)
-    })
-    cell_id <- Cells(sobj)
-    rownames(df_label) <- df_label[, barcode_col]
-    cell_labels <- df_label[cell_id, label_col]
-    Idents(sobj) <- factor(cell_labels)
-    sobj$ground_truth <- factor(cell_labels)
-    return(sobj)
-}
-
-# function to add an embedding object to a Signac object
-# embed: a table where rows are cells and columns are latent dimensions. row names should be the cell id
-add_embedding <- function(sobj, embed, embed_name="learned_embedding", max_dim=NULL){
-    suppressPackageStartupMessages({
-        require(Signac)
-        require(Seurat)
-    })
-    cell_id <- Cells(sobj)
-
-    if(!is.null(max_dim)){
-        embed <- embed[,1:max_dim]
-    }
-
-    cell_id <- cell_id[toupper(cell_id) %in% toupper(rownames(embed))]
-    # take only the intersection of cells
-    sobj <- subset(x=sobj, cells=cell_id)
-    
-    g <- rep(seq_along(cell_id), sapply(cell_id, length))
-    embed_id <- g[match(toupper(cell_id), toupper(rownames(embed)))]
-    embed <- embed[embed_id,]
-    if (all(toupper(rownames(embed)) == toupper(Cells(sobj)))){
-        rownames(embed) <- Cells(sobj)
-    } else(stop("All cells in the embedding being added must match the cells in the object!"))
-
-    colnames(embed) <- NULL
-
-    sobj@reductions[[embed_name]] <- CreateDimReducObject(embeddings = as.matrix(embed), key = "LSI_", assay = DefaultAssay(sobj))
-    return(sobj)
-}
-
 graph_from_sobj <- function(sobj, embedding_name="learned_embedding", n_neighbors=20){
     sobj <- Seurat::FindNeighbors(object = sobj, 
                         reduction = embedding_name, 

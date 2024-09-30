@@ -150,7 +150,7 @@ p1.1 <- ggplot(data1, aes(x=P1, y=P2, fill=metric)) +
   annotate("polygon", x = c(l, l, m), y = c(l, m, m), alpha=0.3, fill="pink") +
   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") +
   geom_point(size=ps, shape=21) +
-  labs(title="Homogeneity", x="P1", y="P2", fill="Metric") +
+  labs(title="Cluster homogeneity", x="P1", y="P2", fill="Metric") +
   theme_minimal() + scale_fill_manual(values=metric_col) + xlim(l, m) + ylim(l, m) +
   theme(legend.position = "bottom", 
         legend.key.height = unit(0.3, "cm"), 
@@ -185,7 +185,7 @@ p1.2 <- ggplot(data2, aes(x=P1, y=P2, fill=metric)) +
   annotate("polygon", x = c(l, l, m), y = c(l, m, m), alpha=0.3, fill="pink") +
   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") +
   geom_point(size=ps, position = position_jitter(width = 0.01, height = 0.01, seed=3), shape=21) +
-  labs(title="Completeness", x="P1", y="P2", fill="Metric") +
+  labs(title="Class completeness", x="P1", y="P2", fill="Metric") +
   theme_minimal() + scale_fill_manual(values=metric_col) + xlim(l, m) + ylim(l, m) +
   geom_segment(data=data2[data2$metric=="AWH",], aes(x = P1-0.12, y = P2+0.03, xend = P1-0.025, yend = P2+0.008),
   arrow = arrow(length = unit(0.02, "npc")), color = "black") +
@@ -223,7 +223,7 @@ p1.3 <- ggplot(data3, aes(x=P1, y=P2, fill=metric)) +
   # annotate("polygon", x = c(l, l, m), y = c(l, m, m), alpha=0.3, fill="pink") +
   geom_abline(intercept=0, slope=1, linetype="dashed", color="black") +
   geom_point(size=ps, shape=21) +
-  labs(title="Class Size Sensitivity", x="P1", y="P2", fill="Metric") +
+  labs(title="Class size sensitivity", x="P1", y="P2", fill="Metric") +
   theme_minimal() + scale_fill_manual(values=metric_col) + xlim(l,m) + ylim(l,m)
 p1.3
 ```
@@ -280,7 +280,7 @@ p1.4 <- ggplot() +
   geom_segment(data=data4[data4$metric=="AWH",], aes(x = P1+0.15, y = P2, xend = P1+0.04, yend = P2), arrow = arrow(length = unit(0.02, "npc")), color = "black") +
   geom_text(data=data4[data4$metric=="AWH",], aes(x = P1+0.15, y = P2-0.02), label="AWH", hjust = 0, vjust = 0, color = "black") +
   xlim(l,m) + ylim(l,m) +
-  labs(title="Chance Agreement Neutrality", x="P1", y="P2", fill="Metric") +
+  labs(title="Chance agreement neutrality", x="P1", y="P2", fill="Metric") +
   theme_minimal() 
 p1.4
 ```
@@ -326,12 +326,12 @@ dev.off()
 ## Metric-centric view
 
 ```{r}
-data1$properties <- "Homogeneity"
-data2$properties <- "Completeness"
+data1$properties <- "Cluster homogeneity"
+data2$properties <- "Class completeness"
 data3$properties <- "Class size sensitivity"
 data4$properties <- "Chance agreement neutrality"
 data <- rbind(data1, data2, data3, data4)
-data$properties <- factor(data$properties, levels=c("Homogeneity", "Completeness", "Class size sensitivity", "Chance agreement neutrality"))
+data$properties <- factor(data$properties, levels=c("Cluster homogeneity", "Class completeness", "Class size sensitivity", "Chance agreement neutrality"))
 
 data <- data %>% pivot_longer(cols=c('P1', 'P2'), names_to = "solution", values_to = "value") 
 
