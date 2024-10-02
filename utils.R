@@ -51,35 +51,6 @@ adjusted_wallance_indices <-function(true=NULL, pred=NULL, contigency_res=NULL){
     return(list("AW"=aw, "AV"=av, "ARI"=ari, "AW2"=aw2, "AV2"=av2, "ARI2"=ari2,"Awi"=awi, "Avj" = avj))
 }
 
-pwc <- function(graph, label, label_idx){
-  suppressPackageStartupMessages({
-    require(igraph)
-  })
-  V(graph)$label <- label
-  label_ls <- unique(label)
-  df_graph <- as_data_frame(graph, what = c("edges"))
-  
-  v_1 <- V(graph)[V(graph)$label == label_ls[label_idx]]
-  v_2 <- V(graph)[V(graph)$label != label_ls[label_idx]]
-
-  
-  l1 <- length(v_1)
-  
-  j1 <- 0
-  w1 <- 0
-  for (i in v_1){
-      df_tmp <- df_graph[df_graph$to == i | df_graph$from == i,] # edges of node i
-      a <- sum(df_tmp$from %in% v_1 & df_tmp$to %in% v_1) # within cluster edges of node i
-      b <- sum(df_tmp$from %in% v_1 & df_tmp$to %in% v_2) + sum(df_tmp$to %in% v_1 & df_tmp$from %in% v_2)# between cluster edges of node i
-      c <- sum(df_tmp$weight[df_tmp$from %in% v_1 & df_tmp$to %in% v_1])
-      d <- sum(df_tmp$weight[df_tmp$from %in% v_1 & df_tmp$to %in% v_2]) + sum(df_tmp$weight[df_tmp$to %in% v_1 & df_tmp$from %in% v_2])
-      if(b>=a){j1 <- j1+1}
-      if(d>=c){w1 <- w1+1}
-  }
-  return(list(j1=j1, j1_frac=j1/l1, w1=w1, w1_frac=w1/l1))
-}
-
-
 ##################
 # Visualization
 ##################
@@ -199,18 +170,4 @@ cross_table_plot <- function(ground_truth, clusterings, a=1.3, b=5.7, c=2, m=0, 
     nrow = 2, ncol = 2, widths = c(3, 1.2), heights = c(1, 3)
     )
     return(plot)
-}
-##################
-# Seurat object related
-##################
-graph_from_sobj <- function(sobj, embedding_name="learned_embedding", n_neighbors=20){
-    sobj <- Seurat::FindNeighbors(object = sobj, 
-                        reduction = embedding_name, 
-                        graph.name = c(paste0("knn_k", n_neighbors), paste0("snn_k", n_neighbors)),
-                        dims=1:15,
-                        k.param=n_neighbors)
-    gm <- sobj@graphs[[paste0("snn_k", n_neighbors)]]
-    attributes(gm)$class <- "dgCMatrix"
-    g <- igraph::graph_from_adjacency_matrix(adjmatrix = gm, add.colnames = TRUE, mode = "directed", weighted = TRUE)
-    return(g)
 }
