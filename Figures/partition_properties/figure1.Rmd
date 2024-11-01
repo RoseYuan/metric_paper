@@ -54,16 +54,16 @@ external_indices <- function(true, pred, metric="ARI", ...) {
         return(aricode::AMI(true, pred, ...))
     }
     if (tolower(metric) == "wh") { # Wallace homogeneity
-        return(as.numeric(ClusteringMetrics::getPartitionMetrics(true, pred, metrics="WH")))
+        return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, metrics="WH")))
     }
     if (tolower(metric) == "wc") { # Wallace completeness
-      return(as.numeric(ClusteringMetrics::getPartitionMetrics(true, pred, "WC")))
+      return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, "WC")))
     }
     if (tolower(metric) == "awh") { # Adjusted Wallace homogeneity
-        return(as.numeric(ClusteringMetrics::getPartitionMetrics(true, pred, "AWH")))
+        return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, "AWH")))
     }
     if (tolower(metric) == "awc") { # Adjusted Wallace completeness
-      return(as.numeric(ClusteringMetrics::getPartitionMetrics(true, pred, "AWC")))
+      return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, "AWC")))
     }
     if (tolower(metric) == "homogeneity" | tolower(metric) == "eh") {
         return(clevr::homogeneity(true, pred, ...))
@@ -75,7 +75,7 @@ external_indices <- function(true, pred, metric="ARI", ...) {
       return(clevr::v_measure(true, pred, ...))
     }
     if (tolower(metric) == "ncr") {
-      return(as.numeric(ClusteringMetrics::getPartitionMetrics(true, pred, "NCR")))
+      return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, "NCR")))
     }
 }
 ```
