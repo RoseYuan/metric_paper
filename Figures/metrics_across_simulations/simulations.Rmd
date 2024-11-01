@@ -65,23 +65,23 @@ cl.mets <- dplyr::bind_rows(bplapply(sims, BPPARAM=MulticoreParam(3, progress=TR
   x <- x[,-ncol(x)]
   d1 <- dplyr::bind_rows(lapply(k, FUN=function(k){
     cl <- kmeans(x, k, nstart=3L)$cluster
-    pm <- as.data.frame(ClusteringMetrics::getPartitionMetrics(labels, cl))
+    pm <- as.data.frame(ClusteringMetrics::getPartitionGlobalMetrics(labels, cl))
     pm$nbClusters <- length(unique(cl))
     pm
   }), .id="clustering")
   g <- ClusteringMetrics:::.emb2snn(as.matrix(x), k=5)
   cl <- as.integer(igraph::cluster_louvain(g)$membership)
-  pm <- as.data.frame(ClusteringMetrics::getPartitionMetrics(labels, cl))
+  pm <- as.data.frame(ClusteringMetrics::getPartitionGlobalMetrics(labels, cl))
   pm$nbClusters <- length(unique(cl))
   pm$clustering <- "louvain.k5.res1"
   d1 <- rbind(d1, pm)
   cl <- as.integer(igraph::cluster_louvain(g, resolution=2)$membership)
-  pm <- as.data.frame(ClusteringMetrics::getPartitionMetrics(labels, cl))
+  pm <- as.data.frame(ClusteringMetrics::getPartitionGlobalMetrics(labels, cl))
   pm$nbClusters <- length(unique(cl))
   pm$clustering <- "louvain.k5.res2"
   d1 <- rbind(d1, pm)
   cl <- as.integer(igraph::cluster_louvain(g, resolution=0.5)$membership)
-  pm <- as.data.frame(ClusteringMetrics::getPartitionMetrics(labels, cl))
+  pm <- as.data.frame(ClusteringMetrics::getPartitionGlobalMetrics(labels, cl))
   pm$nbClusters <- length(unique(cl))
   pm$clustering <- "louvain.k5.res05"
   d1 <- rbind(d1, pm)
