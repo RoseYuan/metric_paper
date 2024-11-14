@@ -57,17 +57,17 @@ p0
 
 ```{r}
 res <- data.frame(matrix(ncol = 6, nrow = 0))
-colnames(res) <- c("PAS", "ELSA", "ELSA.Ea", "ELSA.Ec","SpatialAgreement","k")
+colnames(res) <- c("PAS", "ELSA", "ELSA.Ea", "ELSA.Ec","SpatialConcordance","k")
 for (k in c(6, 18, 30, 42)) {
   tmp <- getSpatialInternalMetrics(clusterlabels, location, k=k, metrics=c("PAS", "ELSA"), level="element")
-  agg <- getSpatialExternalMetrics(true, clusterlabels, location, k=k, level="element", useNegatives = FALSE, metrics=c("SpatialSPA"), fuzzy_true = TRUE, fuzzy_pred = FALSE)
-  tmp$"SpatialSPA" <- agg$SpatialSPA
-  agg <- getPartitionMetrics(true, clusterlabels, level="element", useNegatives = FALSE, metrics=c("SPA"))
-  tmp$"SPA" <- agg$SPA
-  agg <- getSpatialExternalMetrics(true, clusterlabels, location, k=k, level="element", useNegatives = TRUE, metrics=c("SpatialSPA"), fuzzy_true = TRUE, fuzzy_pred = FALSE)
-  tmp$"SpatialSPA_neg" <- agg$SpatialSPA
-  agg <- getPartitionMetrics(true, clusterlabels, level="element", useNegatives = TRUE, metrics=c("SPA"))
-  tmp$"SPA_neg" <- agg$SPA
+  agg <- getSpatialExternalMetrics(true, clusterlabels, location, k=k, level="element", useNegatives = FALSE, metrics=c("SpatialSPC"), fuzzy_true = TRUE, fuzzy_pred = FALSE)
+  tmp$"SpatialSPC" <- agg$SpatialSPC
+  agg <- getPartitionMetrics(true, clusterlabels, level="element", useNegatives = FALSE, metrics=c("SPC"))
+  tmp$"SPC" <- agg$SPC
+  agg <- getSpatialExternalMetrics(true, clusterlabels, location, k=k, level="element", useNegatives = TRUE, metrics=c("SpatialSPC"), fuzzy_true = TRUE, fuzzy_pred = FALSE)
+  tmp$"SpatialSPC_neg" <- agg$SpatialSPC
+  agg <- getPartitionMetrics(true, clusterlabels, level="element", useNegatives = TRUE, metrics=c("SPC"))
+  tmp$"SPC_neg" <- agg$SPC
   tmp$k <- paste0("k=",k)
   tmp$row <- df$row
   tmp$col <- df$col
@@ -78,7 +78,7 @@ for (k in c(6, 18, 30, 42)) {
 ```
 
 ```{r}
-dfl <- as.data.frame(res %>% pivot_longer(cols = c("PAS", "ELSA", "ELSA.Ea", "ELSA.Ec", "SpatialSPA", "SPA", "SpatialSPA_neg","SPA_neg"), names_to="metric", values_to = "value"))
+dfl <- as.data.frame(res %>% pivot_longer(cols = c("PAS", "ELSA", "ELSA.Ea", "ELSA.Ec", "SpatialSPC", "SPC", "SpatialSPC_neg","SPC_neg"), names_to="metric", values_to = "value"))
 dfl$k <- factor(dfl$k, levels=c("k=6","k=18","k=30","k=42"))
 ```
 
@@ -245,7 +245,7 @@ p3s
 
 ```{r}
 st <- 0.5
-p4 <- dfl %>% filter(metric == "SpatialSPA_neg") %>% filter(k %in% c("k=6","k=18")) %>%
+p4 <- dfl %>% filter(metric == "SpatialSPC_neg") %>% filter(k %in% c("k=6","k=18")) %>%
   ggplot(aes(x = col, y = -row, color = value)) +
   geom_point(size=s, stroke = st) + 
   labs(x = "", y = "", color="") +
@@ -272,13 +272,13 @@ p4 <- dfl %>% filter(metric == "SpatialSPA_neg") %>% filter(k %in% c("k=6","k=18
   # scale_shape_manual(values = c(1, 8)) +
   # guides(color = guide_legend(keywidth = 1, keyheight = 0.8, override.aes = list(size = 3)),
   #        shape = guide_legend(keywidth = 1, keyheight = 0.8, override.aes = list(size = 3))) +
-  labs(color="SPA\n(use\nnegatives)", title="Spatial SPA (use negatives)")
+  labs(color="SPC\n(use\nnegatives)", title="Spatial SPC (use negatives)")
 
 p4
 ```
 
 ```{r}
-p6 <- dfl %>% filter(metric == "SPA_neg") %>% filter(k == "k=6") %>%
+p6 <- dfl %>% filter(metric == "SPC_neg") %>% filter(k == "k=6") %>%
   ggplot() +
   geom_point(aes(x = col, y = -row, color = value), size = s) +
   labs(x = "", y = "", color="") +
@@ -289,7 +289,7 @@ p6 <- dfl %>% filter(metric == "SPA_neg") %>% filter(k == "k=6") %>%
   legend.title = element_text(size = 9),
   legend.box.margin = margin(-1, -1, -1, -1),
   axis.title.x=element_blank(),
-  legend.position = "None",
+  legend.position = "right",
   axis.text.x=element_blank(),
   axis.ticks.x=element_blank(),
   axis.text.y=element_blank(),
@@ -300,17 +300,17 @@ p6 <- dfl %>% filter(metric == "SPA_neg") %>% filter(k == "k=6") %>%
   plot.margin = margin(10, -5, -2, -5),
   plot.title = element_text(hjust = 0.5, size=10, vjust=0.2)
   ) +
-  labs(color="SPA",title="NonSpatial SPA\n(use negatives)")
+  labs(color="NonSpatial\nSPC\n(use\nnegatives)", title="NonSpatial SPC\n(use negatives)")
 p6
 ```
 
 ```{r}
-max(dfl %>% filter(metric == "SpatialSPA") %>% filter(k != "k=30") %>% select(value))
+max(dfl %>% filter(metric == "SpatialSPC") %>% filter(k != "k=30") %>% select(value))
 ```
 
 ```{r}
 st <- 0.5
-p8 <- dfl %>% filter(metric == "SpatialSPA") %>% filter(k %in% c("k=6","k=18")) %>%
+p8 <- dfl %>% filter(metric == "SpatialSPC") %>% filter(k %in% c("k=6","k=18")) %>%
   ggplot(aes(x = col, y = -row, color = value)) +
   geom_point(size=s, stroke = st) + 
   labs(x = "", y = "", color="") +
@@ -334,13 +334,13 @@ p8 <- dfl %>% filter(metric == "SpatialSPA") %>% filter(k %in% c("k=6","k=18")) 
     plot.margin = margin(5, 1, -2, 0),
   plot.title = element_text(hjust = 0.5, size=10, vjust=-0.2)
   ) +
-  labs(color="SPA", title="Spatial SPA")
+  labs(color="SPC", title="Spatial SPC")
 
 p8
 ```
 
 ```{r}
-p9 <- dfl %>% filter(metric == "SPA") %>% filter(k == "k=6") %>%
+p9 <- dfl %>% filter(metric == "SPC") %>% filter(k == "k=6") %>%
   ggplot() +
   geom_point(aes(x = col, y = -row, color = value), size = s) +
   labs(x = "", y = "", color="") +
@@ -351,7 +351,7 @@ p9 <- dfl %>% filter(metric == "SPA") %>% filter(k == "k=6") %>%
   legend.title = element_text(size = 9),
   legend.box.margin = margin(-1, -1, -1, -1),
   axis.title.x=element_blank(),
-  legend.position = "None",
+  legend.position = "right",
   axis.text.x=element_blank(),
   axis.ticks.x=element_blank(),
   axis.text.y=element_blank(),
@@ -362,7 +362,7 @@ p9 <- dfl %>% filter(metric == "SPA") %>% filter(k == "k=6") %>%
   plot.margin = margin(15, -5, -2, -5),
   plot.title = element_text(hjust = 0.5, size=10, vjust=0.2)
   ) +
-  labs(color="SPA",title="NonSpatial SPA")
+  labs(color="NonSpatial\nSPC",title="NonSpatial SPC")
 p9
 ```
 
@@ -388,18 +388,28 @@ dev.off()
 
 
 ```{r}
-p7 <- cowplot::plot_grid(p6, p4, 
-                         rel_widths=c(1,3.2), ncol=2, 
-                         labels=c("a","b"), scale=c(1, 1))
+p7 <- cowplot::plot_grid(empty_plot, p6, p9, 
+                         rel_widths=c(1.3,1,1), ncol=3, 
+                         labels=c("a","b","c"))
 
-p10 <- cowplot::plot_grid(p9, p8, 
-                         rel_widths=c(1,3.2), ncol=2, 
-                         labels=c("c","d"), scale=c(1, 1))
+# p7 <- cowplot::plot_grid(p6, p4, 
+#                          rel_widths=c(1,2.4), ncol=2, 
+#                          labels=c("b","c"), scale=c(1, 1))
 
-pdf("spatial_metrics_real_data_spa.pdf", width=9.5, height=5)
+p10 <- cowplot::plot_grid(p4, p8, 
+                         rel_widths=c(1,1), ncol=2, 
+                         labels=c("d","e"), scale=c(1, 1))
+
+# pn <- cowplot::plot_grid(p7, p10, nrow=2, 
+#                    labels=c("",""))
+
+empty_plot <- ggdraw() 
+
+pdf("spatial_metrics_real_data_spc.pdf", width=9.5, height=5)
 cowplot::plot_grid(p7, p10,
-                   rel_widths=c(1,3.2), nrow=2, 
+                   rel_widths=c(1,1), nrow=2, 
                    labels=c("",""))
+
 dev.off()
 ```
 
