@@ -189,7 +189,9 @@ p3 <- mat %>%
     name = "AWC",
     cluster_columns = FALSE,  # Disable clustering of columns
     column_order = c("WM", "L6", "L5", "L4", "L3", "L2", "L1"),  # Use the specified column order
-    bottom_annotation = column_ha)
+    bottom_annotation = column_ha,
+    width = ncol(mat)*unit(6, "mm"), 
+    height = nrow(mat)*unit(7, "mm"))
 
 p3 <- grid.grabExpr({
  draw(p3, merge_legend = TRUE)
@@ -205,9 +207,11 @@ p4 <- mat %>%
     name = "AWH",
     cluster_columns = FALSE, 
     column_order = c("1","2","3","4","5","6","7"),
-    bottom_annotation = column_ha)
+    bottom_annotation = column_ha,
+    width = ncol(mat)*unit(6, "mm"), 
+    height = nrow(mat)*unit(7, "mm"))
 p4 <- grid.grabExpr({
- draw(p4, merge_legend = TRUE)
+ draw(p4, merge_legend = TRUE, padding = unit(c(6.5, 2, 2, 2), "mm"))
 })
 ```
 
