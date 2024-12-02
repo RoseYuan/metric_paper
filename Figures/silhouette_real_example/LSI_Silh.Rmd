@@ -14,10 +14,7 @@ suppressPackageStartupMessages({
 ```
 
 ```{r}
-d <- readRDS("Atlas2_ArchR_tiles_ndim15_LSI.rds")
-# d$silhW <- cluster::silhouette(as.integer(d$class), dist(d[,1:15]))[,3]
-# cd <- ClassDiscovery::distanceMatrix(t(d[,1:15]), metric="cosine")
-# d$cosSilhW <- cluster::silhouette(as.integer(d$class), cd)[,3]
+d <- readRDS("../../data/silhouette_real_life_examples/Atlas2_ArchR_tiles_ndim15_LSI.rds")
 levels(d$class) <- gsub("_","\n",gsub("_[0-9]|_Type","",levels(d$class)))
 ```
 
