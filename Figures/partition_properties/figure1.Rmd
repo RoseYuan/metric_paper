@@ -9,111 +9,23 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-devtools::load_all("~/public/SiyuanLuo/projects/clustering_metrics/ClusteringMetrics")
 ```
 
 ```{r, echo=FALSE}
-# source("../../utils.R")
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(poem)
 ```
 
-# Partition metrics
-```{r}
-external_indices <- function(true, pred, metric="ARI", ...) {
-    # check if the cell id matches
-    if (length(true) != length(pred)) {
-        stop("Error! The two partitionings should have the same length!")
-    }
-    # unnormalized
-    if (tolower(metric) == "mi") { # mutual information
-        return(infotheo::mutinformation(true, pred, ...))
-    }
-    if (tolower(metric) == "vi") { # variation of information
-        return(clevr::variation_info(true, pred))
-    }
-    if (tolower(metric) == "purity") {
-        return(funtimes::purity(true, pred))
-    }
-    if (tolower(metric) %in% c("vdm","mirkin","mhm","mmm")) { # vdm: Van Dongen Measure; mhm: Meila-Heckerman Measure; mmm: Maximum-Match Measure; mirkin: Mirkin Metric;
-        return(mclustcomp::mclustcomp(as.vector(true), as.vector(pred), types = tolower(metric))$scores)
-    }
-    if (tolower(metric) == "fm") { # f: F-Measure;
-        return(FlowSOM::FMeasure(mclustcomp:::aux.conversion(true), 
-                         mclustcomp:::aux.conversion(pred)))
-    }
-    if (tolower(metric) == "ri") { # rand index
-      return(aricode::RI(true, pred, ...))
-    }
-    # normalized/adjusted
-    if (tolower(metric) == "ari") { # adjusted rand index
-        return(aricode::ARI(true, pred, ...))
-    }
-    if (tolower(metric) == "ami") { # adjusted mutual information
-        return(aricode::AMI(true, pred, ...))
-    }
-    if (tolower(metric) == "wh") { # Wallace homogeneity
-        return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, metrics="WH")))
-    }
-    if (tolower(metric) == "wc") { # Wallace completeness
-      return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, "WC")))
-    }
-    if (tolower(metric) == "awh") { # Adjusted Wallace homogeneity
-        return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, "AWH")))
-    }
-    if (tolower(metric) == "awc") { # Adjusted Wallace completeness
-      return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, "AWC")))
-    }
-    if (tolower(metric) == "homogeneity" | tolower(metric) == "eh") {
-        return(clevr::homogeneity(true, pred, ...))
-    }
-    if (tolower(metric) == "completeness"| tolower(metric) == "ec") {
-      return(clevr::completeness(true, pred, ...))
-    }
-    if (tolower(metric) == "vm") {
-      return(clevr::v_measure(true, pred, ...))
-    }
-    if (tolower(metric) == "ncr") {
-      return(as.numeric(ClusteringMetrics::getPartitionGlobalMetrics(true, pred, "NCR")))
-    }
-}
-```
 
-```{r}
-cal_all <- function(true, pred, metrics_ls){
-  res <- lapply(setNames(metrics_ls, metrics_ls), FUN=function(m){
-    switch(m,
-           WC = external_indices(true, pred, metric="WC"),
-           AWC = external_indices(true, pred, metric="AWC"),
-           WH = external_indices(true, pred, metric="WH"),
-           AWH = external_indices(true, pred, metric="AWH"),
-           RI = external_indices(true, pred, metric="RI"),
-           ARI = external_indices(true, pred, metric="ARI"),
-           MI = external_indices(true, pred, metric="MI"), 
-           AMI = external_indices(true, pred, metric="AMI"),
-           EH = external_indices(true, pred, metric="EH"), 
-           EC = external_indices(true, pred, metric="EC"), 
-           VM = external_indices(true, pred, metric="VM"),
-           VDM =external_indices(true, pred, metric="VDM"),
-           wFM =external_indices(true, pred, metric="FM"),
-           MHM =external_indices(true, pred, metric="MHM"),
-           NCR = external_indices(true, pred, metric="NCR"),
-           stop("Unknown metric.")
-    )
-  })
-  return(res)
-}
-
-```
-# Figure 1
 ```{r}
 library(colorBlindness)
-names(PairedColor12Steps) <- NULL
 library(scales)
+names(PairedColor12Steps) <- NULL
+
 metric_col <- c(PairedColor12Steps[c(10,7,8,9,1,2,11,12,6)], "black","grey48", PairedColor12Steps[4], "white")
-metric_ls <- c("RI", "WH", "WC", "ARI", "AWH", "AWC", "EH", "EC", "VM", "MI", "AMI", "NCR", "wFM") 
-# metric_col <- c("#6A3D9A","#A6CEE3","#1F78B4", "#CAB2D6","#B2DF8A","#33A02C", "#FB9A99","#E31A1C",  "#FF7F00","#B15928","#FDBF6F")
+metric_ls <- c("RI", "WH", "WC", "ARI", "AWH", "AWC", "EH", "EC", "VM", "MI", "AMI", "NCR", "FM") 
 ps <- 5
 ```
 
@@ -135,8 +47,8 @@ py <- as.factor(py)
 ```
 
 ```{r}
-px_value <- cal_all(cc, px, metric_ls)
-py_value <- cal_all(cc, py, metric_ls)
+px_value <- getPartitionMetrics(true=cc, pred=px, metrics=metric_ls, level="dataset")
+py_value <- getPartitionMetrics(true=cc, pred=py, metrics=metric_ls, level="dataset")
 data1 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value)))
 data1$metric <- factor(rownames(data1), levels=metric_ls)
 ```
@@ -158,7 +70,9 @@ p1.1 <- ggplot(data1, aes(x=P1, y=P2, fill=metric)) +
   guides(fill = guide_legend(nrow = 1))
 p1.1
 ```
+
 ### Completeness
+
 ```{r}
 # Sample data
 cc <- c(1,1,1,1,2,2,2,2,3,3)
@@ -170,8 +84,8 @@ py <- as.factor(py)
 ```
 
 ```{r}
-px_value <- cal_all(cc, px, metric_ls)
-py_value <- cal_all(cc, py, metric_ls)
+px_value <- getPartitionMetrics(true=cc, pred=px, metrics=metric_ls, level="dataset")
+py_value <- getPartitionMetrics(true=cc, pred=py, metrics=metric_ls, level="dataset")
 data2 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value)))
 data2$metric <- factor(rownames(data2), levels=metric_ls)
 ```
@@ -197,6 +111,7 @@ p1.2
 ```
 
 ### Imbalance
+
 ```{r}
 # Sample data
 cc <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3)
@@ -208,8 +123,8 @@ py <- as.factor(py)
 ```
 
 ```{r}
-px_value <- cal_all(cc, px, metric_ls)
-py_value <- cal_all(cc, py, metric_ls)
+px_value <- getPartitionMetrics(true=cc, pred=px, metrics=metric_ls, level="dataset")
+py_value <- getPartitionMetrics(true=cc, pred=py, metrics=metric_ls, level="dataset")
 data3 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value)))
 data3$metric <- factor(rownames(data3), levels=metric_ls)
 ```
@@ -229,6 +144,7 @@ p1.3
 ```
 
 ### Chance Agreement Neutrality
+
 ```{r}
 # Sample data
 set.seed(141)
@@ -250,8 +166,8 @@ cc <- as.factor(cc)
 px <- as.factor(px)
 py <- as.factor(py)
 
-px_value <- cal_all(cc, px, metric_ls)
-py_value <- cal_all(cc, py, metric_ls)
+px_value <- getPartitionMetrics(true=cc, pred=px, metrics=metric_ls, level="dataset")
+py_value <- getPartitionMetrics(true=cc, pred=py, metrics=metric_ls, level="dataset")
 data4 <- data.frame(cbind(P1=unlist(px_value), P2=unlist(py_value)))
 data4$metric <- factor(rownames(data4), levels=metric_ls)
 
@@ -285,19 +201,6 @@ p1.4 <- ggplot() +
 p1.4
 ```
 
-
-
-```{r}
-# svg("Fig1.1.svg", width=4, height=3)
-# plot(p1.1)
-# dev.off() 
-# svg("Fig1.2.svg", width=4, height=3)
-# plot(p1.2)
-# dev.off() 
-# svg("Fig1.3.svg", width=4, height=3)
-# plot(p1.3)
-# dev.off() 
-```
 
 ```{r}
 library(cowplot)
