@@ -1,3 +1,9 @@
+# local experiments
+./Figures/partition_properties/old_ncr.R
+./Figures/spatial_toy_examples/._spatial_toy_examples_fuzzy.ipynb
+./Figures/spatial_toy_examples/._spatial_toy_examples_test.ipynb
+./Figures/spatial_toy_examples/spatial_toy_examples_test.ipynb
+./Figures/spatial_toy_examples/toys.qmd
 # Code to collect data from previous benchmark
 **/*.RDS
 AV_AW_tradeoff/collect_results.R
@@ -57,3 +63,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+Figures/partition_properties/old_ncr.R
+Figures/spatial_toy_examples/spatial_toy_examples_test.ipynb
+Figures/spatial_toy_examples/._spatial_toy_examples_test.ipynb
+Figures/spatial_toy_examples/._spatial_toy_examples_fuzzy.ipynb
+Figures/spatial_toy_examples/toys.qmd
+Figures/.DS_Store
