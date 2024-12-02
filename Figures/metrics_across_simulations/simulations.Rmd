@@ -10,9 +10,9 @@ suppressPackageStartupMessages({
   library(ComplexHeatmap)
   library(BiocNeighbors)
   library(igraph)
+  library(poem)
 })
 knitr::opts_chunk$set(dev="CairoPNG")
-devtools::load_all("../../../ClusteringMetrics/")
 ```
 
 ```{r}
@@ -42,16 +42,16 @@ saveRDS(sims, "simulations.rds")
 ```{r}
 sims <- readRDS("simulations.rds")
 ge.mets <- dplyr::bind_rows(bplapply(sims, BPPARAM=MulticoreParam(3, progress=TRUE), FUN=function(x){
-  gm <- ClusteringMetrics::getGraphClassMetrics(x[,-ncol(x)], x[,ncol(x)], k=5)
+  gm <- getGraphMetrics(x[,-ncol(x)], x[,ncol(x)], k=5, level="class", metrics=c("SI", "NP", "AMSP", "PWC", "NCE"))
   colnames(gm)[2:ncol(gm)] <- paste0("graph.",colnames(gm)[2:ncol(gm)])
-  em <- ClusteringMetrics::getEmbeddingClassMetrics(x[,-ncol(x)], x[,ncol(x)])
+  em <- getEmbeddingMetrics(x[,-ncol(x)], x[,ncol(x)], level="class")
   colnames(em)[2:ncol(em)] <- paste0("embedding.",colnames(em)[2:ncol(em)])
   cbind(em,gm[,-1])
 }), .id="simulation")
 saveRDS(ge.mets, "graphEmbClassMetrics.rds")
 
 embGlobal.mets <- dplyr::bind_rows(bplapply(sims, BPPARAM=MulticoreParam(3, progress=TRUE), FUN=function(x){
-  em <- ClusteringMetrics::getEmbeddingGlobalMetrics(x[,-ncol(x)], x[,ncol(x)])
+  em <- getEmbeddingMetrics(x[,-ncol(x)], x[,ncol(x)], level="dataset", metrics=c("meanSW", "meanClassSW", "pnSW", "minClassSW", "cdbw", "cohesion", "compactness", "sep", "dbcv"))
   colnames(em) <- paste0("embedding.",colnames(em))
   em
 }), .id="simulation")
@@ -65,23 +65,27 @@ cl.mets <- dplyr::bind_rows(bplapply(sims, BPPARAM=MulticoreParam(3, progress=TR
   x <- x[,-ncol(x)]
   d1 <- dplyr::bind_rows(lapply(k, FUN=function(k){
     cl <- kmeans(x, k, nstart=3L)$cluster
-    pm <- as.data.frame(ClusteringMetrics::getPartitionGlobalMetrics(labels, cl))
+    pm <- as.data.frame(getPartitionMetrics(labels, cl, level="dataset", metrics=c("VM","AMI","NCR","ARI","EC","EH","AWH","MI",
+                                                                                   "WH","AWC","RI","FM","WC")))
     pm$nbClusters <- length(unique(cl))
     pm
   }), .id="clustering")
-  g <- ClusteringMetrics:::.emb2snn(as.matrix(x), k=5)
+  g <- emb2snn(as.matrix(x), k=5)
   cl <- as.integer(igraph::cluster_louvain(g)$membership)
-  pm <- as.data.frame(ClusteringMetrics::getPartitionGlobalMetrics(labels, cl))
+  pm <- as.data.frame(getPartitionMetrics(labels, cl, level="dataset", metrics=c("VM","AMI","NCR","ARI","EC","EH","AWH","MI",
+                                                                                   "WH","AWC","RI","FM","WC")))
   pm$nbClusters <- length(unique(cl))
   pm$clustering <- "louvain.k5.res1"
   d1 <- rbind(d1, pm)
   cl <- as.integer(igraph::cluster_louvain(g, resolution=2)$membership)
-  pm <- as.data.frame(ClusteringMetrics::getPartitionGlobalMetrics(labels, cl))
+  pm <- as.data.frame(getPartitionMetrics(labels, cl, level="dataset", metrics=c("VM","AMI","NCR","ARI","EC","EH","AWH","MI",
+                                                                                   "WH","AWC","RI","FM","WC")))
   pm$nbClusters <- length(unique(cl))
   pm$clustering <- "louvain.k5.res2"
   d1 <- rbind(d1, pm)
   cl <- as.integer(igraph::cluster_louvain(g, resolution=0.5)$membership)
-  pm <- as.data.frame(ClusteringMetrics::getPartitionGlobalMetrics(labels, cl))
+  pm <- as.data.frame(getPartitionMetrics(labels, cl, level="dataset", metrics=c("VM","AMI","NCR","ARI","EC","EH","AWH","MI",
+                                                                                   "WH","AWC","RI","FM","WC")))
   pm$nbClusters <- length(unique(cl))
   pm$clustering <- "louvain.k5.res05"
   d1 <- rbind(d1, pm)
