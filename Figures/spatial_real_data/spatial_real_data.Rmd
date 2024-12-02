@@ -16,7 +16,7 @@ library(RColorBrewer)
 ```
 
 ```{r}
-df <- readRDS(file="../../spatial_real_data/obs_Br8100_151673_spe_coldata.RDS")
+df <- readRDS(file="../../data/spatial_real_data/obs_Br8100_151673_spe_coldata.RDS")
 ```
 
 ```{r}
