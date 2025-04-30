@@ -8,9 +8,9 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(patchwork)
   library(BiocParallel)
+  library(poem)
 })
 knitr::opts_chunk$set(dev="CairoPNG")
-devtools::load_all("~/bioinfo/robinson/siyuan/ClusteringMetrics/")
 ```
 
 ```{r, eval=FALSE}
@@ -24,15 +24,15 @@ sims <- dplyr::bind_rows(bplapply(sizes, BPPARAM=MulticoreParam(4, progress=TRUE
   e <- dplyr::bind_rows(lapply(seeds, FUN=function(s){
     set.seed(s)
     d <- mockData(N=si)
-    knn <- .emb2knn(as.matrix(d[,1:2]), k=max(ks))
+    knn <- emb2knn(as.matrix(d[,1:2]), k=max(ks))
     e <- dplyr::bind_rows(lapply(ks, FUN=function(k){
-      g <- .nn2graph(lapply(knn, FUN=function(x){
+      g <- poem:::.nn2graph(lapply(knn, FUN=function(x){
         if(is.matrix(x)) return(x[,seq_len(k)])
         x
       }), d$class)
-      m <- .igraphFunPerClass(g, directed=FALSE, FUN=.adjMeanShortestPath, normalize=FALSE)
+      m <- poem:::.igraphFunPerClass(g, directed=FALSE, FUN=poem:::.adjMeanShortestPath, normalize=FALSE)
       res <- data.frame(class=names(m), value=as.numeric(m))
-      res$ne <- .igraphFunPerClass(g, directed=FALSE, FUN=igraph::ecount)
+      res$ne <- poem:::.igraphFunPerClass(g, directed=FALSE, FUN=igraph::ecount)
       res
     }), .id="k")
     e$size <- si

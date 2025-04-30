@@ -11,10 +11,9 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(parallel)
   library(cowplot)
+  library(poem)
 })
 knitr::opts_chunk$set(dev="CairoPNG")
-# source("../../../ClusteringMetrics/R/CDbw.R")
-devtools::load_all("../../../ClusteringMetrics")
 ```
 # Silhouette dataset
 ```{r}
@@ -49,13 +48,14 @@ getGlobal <- function(d){
   a <- CDbw(d[,1:2], as.integer(factor(d$class)))
   names(a) <- paste0("CDbw\n",gsub("^sep$","separation",names(a)))
   a <- c(a, "mean\nsilh.width"=mean(d$sw))
-  a <- c(a, "DBCV"=getEmbeddingGlobalMetrics(d[,1:2], as.integer(factor(d$class)), metrics = c("dbcv")))
+  a <- c(a, "DBCV"=getEmbeddingMetrics(d[,1:2], as.integer(factor(d$class)), metrics = c("dbcv"), level="dataset"))
   return(a)
 }
 gm <- getGlobal(da)
 gm <- data.frame(scenario=rep(as.character(1:2), each=6),
                  metric=rep(names(gm),2),
                  value=unlist(c(gm, getGlobal(d3))))
+
 gmp <- gm %>% mutate(metric = recode(metric, "CDbw\ncdbw"="CDbw", "DBCV.dbcv"="DBCV")) %>%
 ggplot(aes(x=scenario, y=value, fill=scenario)) + labs(y="") +
   geom_col(position = "dodge") + facet_wrap(~metric, scales="free_y", ncol=2) + 
@@ -148,8 +148,8 @@ p3 <- ggplot(data, aes(x, y, color=hdbscan_label)) +
 
 ```{r}
 library(tidyr)
-res1 <- getEmbeddingGlobalMetrics(data[,c("x","y")], data$kmeans_label)
-res2 <- getEmbeddingGlobalMetrics(data[,c("x","y")], data$hdbscan_label)
+res1 <- getEmbeddingMetrics(data[,c("x","y")], data$kmeans_label, level="dataset", metrics=c("meanSW", "cdbw", "cohesion", "compactness", "sep", "dbcv"))
+res2 <- getEmbeddingMetrics(data[,c("x","y")], data$hdbscan_label, level="dataset", metrics=c("meanSW", "cdbw", "cohesion", "compactness", "sep", "dbcv"))
 res1 <- pivot_longer(res1, cols = colnames(res1), names_to = "metric")
 res1$scenario <- "3"
 res2 <- pivot_longer(res2, cols = colnames(res2), names_to = "metric")

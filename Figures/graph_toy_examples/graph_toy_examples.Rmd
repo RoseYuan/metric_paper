@@ -11,16 +11,16 @@ suppressPackageStartupMessages({
   library(igraph)
   library(ggnetwork)
   library(scales)
+  library(poem)
 })
 knitr::opts_chunk$set(dev="CairoPNG")
-devtools::load_all("~/bioinfo/robinson/siyuan/ClusteringMetrics/")
 ```
 
 # Functions
 
 ```{r}
 getGraphStats <- function(knn){
-  gm <- ClusteringMetrics::getGraphClassMetrics(knn, knn$class, metrics=c("SI","ISI","NP","AMSP","PWC","NCE","cohesion","adhesion"))
+  gm <- getGraphMetrics(knn, knn$class, metrics=c("SI","ISI","NP","AMSP","PWC","NCE","cohesion","adhesion"), level="class", k=NULL)
   g <- knn2graph(knn)
   m <- cbind(class="graph", as.data.frame(t(rep(NA_real_,ncol(gm)-1))))
   colnames(m) <- colnames(gm)
