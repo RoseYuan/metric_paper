@@ -1,0 +1,79 @@
+import os
+
+# Iterate over metrics
+metrics = config["METRIC"]
+args_ids = list(set(m.get("args_id", "default") for m in metrics))
+size_ids = config["SIZE_ID"]
+cluster_nums = ["5"] 
+# cluster_nums = ["5", "11", "14"]  # Define explicitly
+
+# Fully expand all wildcards into concrete file paths
+result_files = [
+    os.path.join(
+        config['OUT_DIR'],
+        f"size{size_id}",
+        f"k{num_clusters}",
+        f"{metric['name']}_{metric.get('args_id', 'default')}.result"
+    )
+    for size_id in size_ids
+    for num_clusters in cluster_nums
+    for metric in metrics
+]
+
+rule all:
+    input:
+        result_files
+
+rule compute_metric:
+    input:
+        label_input=config['LABEL_FILE'],
+        pred=lambda wildcards: (
+            config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wildcards.metric_name)]["pred"][wildcards.num_clusters]
+            if "pred" in config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wildcards.metric_name)]
+            else config['LABEL_FILE']
+        )
+    output:
+        res=os.path.join(config['OUT_DIR'],"size{size_id}","k{num_clusters}","{metric_name}_{args_id}.result")
+    log:
+        os.path.join(config['OUT_DIR'],"logs/size{size_id}/k{num_clusters}/{metric_name}_{args_id}.log")
+    benchmark:
+        repeat(os.path.join(config['OUT_DIR'],"benchmarks/size{size_id}/k{num_clusters}/{metric_name}_{args_id}.txt"), 5)
+    params:
+        extra_args=lambda wc: next(m.get("args", "") for m in metrics if m["name"] == wc.metric_name and m.get("args_id", "default") == wc.args_id),
+        truth=lambda wildcards: config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wildcards.metric_name)]["truth"][wildcards.num_clusters],
+        metric=lambda wildcards: wildcards.metric_name,
+        level=lambda wildcards: config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wildcards.metric_name)]["level"],
+        pred_col=lambda wildcards: (
+            config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wildcards.metric_name)]["pred_col"][wildcards.num_clusters]
+            if "pred_col" in config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wildcards.metric_name)]
+            else None
+            ),
+        n_embed=config["NDIM_EMBED"],
+        pred_flag=lambda wc: (
+            "--pred " + config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wc.metric_name)]["pred"][wc.num_clusters]
+            if "pred" in config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wc.metric_name)]
+            else ""
+        ),
+        pred_col_flag=lambda wc: (
+            "--pred_col " + config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wc.metric_name)]["pred_col"][wc.num_clusters]
+            if "pred_col" in config["METRIC"][next(i for i, m in enumerate(metrics) if m["name"] == wc.metric_name)]
+            else ""
+        )
+    container:
+        "/cluster/work/nme/data/siluo/metrics_benchmark/plger_metrics.sif"
+    shell:
+        """
+        Rscript compute_metric.R \
+        --input {input.label_input} \
+        --output $(dirname {output.res}) \
+        --metric {params.metric} \
+        --size_id {wildcards.size_id} \
+        --level {params.level} \
+        --true {params.truth} \
+        {params.pred_flag} \
+        {params.pred_col_flag} \
+        --n_embed {params.n_embed} \
+        --n_cluster {wildcards.num_clusters} \
+        --args_id {wildcards.args_id} \
+        --extra_args "{params.extra_args}" 2>&1 | tee {log}
+        """
