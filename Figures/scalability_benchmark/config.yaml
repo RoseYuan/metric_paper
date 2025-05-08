@@ -1,0 +1,228 @@
+LABEL_FILE: "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/subsampled.RDS"
+OUT_DIR: "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/scalability_benchmark/"
+EMBED_DIR: "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/"
+NDIM_EMBED: 10
+SIZE_ID: [4]
+METRIC:
+  - name: "AMSP"
+    level: "dataset"
+    truth: 
+      "5": "cluster_5"
+      "11": "cluster_11"
+      "14": "cluster_14"
+    pred: 
+      "5":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_5/embedding.tsv"
+      "11":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_11/embedding.tsv"
+      "14":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_14/embedding.tsv"
+  - name: "NCE"
+    level: "dataset"
+    truth:
+      "5":  "cluster_5"
+      "11":  "cluster_11"
+      "14":  "cluster_14"
+    pred: 
+      "5":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_5/embedding.tsv"
+      "11":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_11/embedding.tsv"
+      "14":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_14/embedding.tsv"
+  - name: "NP"
+    level: "dataset"
+    truth: 
+      "5":  "cluster_5"
+      "11":  "cluster_11"
+      "14":  "cluster_14"
+    pred: 
+      "5":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_5/embedding.tsv"
+      "11":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_11/embedding.tsv"
+      "14":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_14/embedding.tsv"
+  - name: "PWC"
+    level: "dataset"
+    truth: 
+      "5":  "cluster_5"
+      "11":  "cluster_11"
+      "14":  "cluster_14"
+    pred: 
+      "5":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_5/embedding.tsv"
+      "11":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_11/embedding.tsv"
+      "14":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_14/embedding.tsv"
+  - name: "cohesion"
+    level: "dataset"
+    truth: 
+      "5":  "cluster_5"
+      "11":  "cluster_11"
+      "14":  "cluster_14"
+    pred: 
+      "5":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_5/embedding.tsv"
+      "11":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_11/embedding.tsv"
+      "14":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_14/embedding.tsv"
+  - name: "cdbw"
+    level: "dataset"
+    truth: 
+      "5":  "cluster_5"
+      "11":  "cluster_11"
+      "14":  "cluster_14"
+    pred: 
+      "5":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_5/embedding.tsv"
+      "11":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_11/embedding.tsv"
+      "14":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_14/embedding.tsv"
+  - name: "dbcv"
+    level: "dataset"
+    truth: 
+      "5":  "cluster_5"
+      "11":  "cluster_11"
+      "14":  "cluster_14"
+    pred: 
+      "5":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_5/embedding.tsv"
+      "11":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_11/embedding.tsv"
+      "14":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_14/embedding.tsv"
+  - name: "meanSW"
+    level: "dataset"
+    truth: 
+      "5":  "cluster_5"
+      "11":  "cluster_11"
+      "14":  "cluster_14"
+    pred: 
+      "5":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_5/embedding.tsv"
+      "11":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_11/embedding.tsv"
+      "14":  "/home/siluo/public/SiyuanLuo/projects/clustering_metrics/metric_paper/data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/cluster_14/embedding.tsv"
+
+  - name: "ARI"
+    level: "dataset"
+    truth:
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11"
+      "14":  "cluster_14"
+  - name: "ASPC"
+    level: "element"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "SPC"
+    level: "element"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "AWC"
+    level: "class"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "AWH" 
+    level: "class"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "NCR"
+    level: "dataset"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+
+  - name: "SpatialARI"
+    level: "dataset"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "SpatialRI"
+    level: "dataset"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "SpatialSPC"
+    level: "element"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "SpatialAccuracy"
+    level: "dataset"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "nsARI"
+    level: "dataset"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "nsAWC"
+    level: "class"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "nsAWH"
+    level: "class"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
+  - name: "nsSPC" 
+    level: "element"
+    truth: 
+      "5":  "label"
+      "11":  "label"
+      "14":  "label"
+    pred_col: 
+      "5":  "cluster_5"
+      "11":  "cluster_11" 
+      "14":  "cluster_14"
