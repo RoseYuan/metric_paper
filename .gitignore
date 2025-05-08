@@ -1,3 +1,23 @@
+# snakemake
+Figures/scalability_benchmark/._plger_metrics.tar
+Figures/scalability_benchmark/.snakemake/
+Figures/scalability_benchmark/cp_to_Euler.sh
+Figures/scalability_benchmark/plger_metrics.sif
+Figures/scalability_benchmark/plger_metrics.tar
+Figures/scalability_benchmark/snakemake_logs_05.06.2025
+# unwanted/large data
+.DS_Store
+._.DS_Store
+data/.DS_Store
+data/._.DS_Store
+data/spatial_real_data/.DS_Store
+data/spatial_real_data/._.DS_Store
+data/spatial_real_data/._visium_hd_cancer_colon_neo
+data/spatial_real_data/._visium_hd_cancer_colon_square_016um_small
+data/spatial_real_data/._visium_hd_cancer_colon_square_016um_small.zip
+data/spatial_real_data/visium_hd_cancer_colon_neo/
+data/spatial_real_data/visium_hd_cancer_colon_neo_all_results.tsv
+data/spatial_real_data/visium_hd_cancer_colon_square_016um_small.zip
 # local experiments
 ./Figures/partition_properties/old_ncr.R
 ./Figures/spatial_toy_examples/._spatial_toy_examples_fuzzy.ipynb
@@ -7,7 +27,7 @@
 # Code to collect data from previous benchmark
 **/*.RDS
 AV_AW_tradeoff/collect_results.R
-partition_real_life_examples/collect_results.R
+./partition_real_life_examples/collect_results.R
 **/*_sobj_SNN.RDS
 PWC/test.RDS
 # Produced figures
@@ -70,3 +90,6 @@ Figures/spatial_toy_examples/._spatial_toy_examples_fuzzy.ipynb
 Figures/spatial_toy_examples/toys.qmd
 Figures/.DS_Store
 data/AWC_AWH_tradeoff/collect_results.R
+data/partition_real_life_examples/collect_results.R
+data/PWC/get_umap.R
+Figures/spatial_toy_examples/spatial_toy_examples_fuzzy.ipynb
