@@ -60,7 +60,7 @@ rule compute_metric:
             else ""
         )
     container:
-        "/cluster/work/nme/data/siluo/metrics_benchmark/plger_metrics.sif"
+        "/cluster/work/nme/data/siluo/metrics_benchmark/plger_metrics-poem.sif"
     shell:
         """
         Rscript compute_metric.R \
