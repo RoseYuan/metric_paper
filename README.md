@@ -12,9 +12,10 @@ The subdirectories and corresponding figures are as follows:
 - spatial_real_data: 
   - spatial_real_data.Rmd: Figure 6
   - spatial_real_data_k.Rmd: Figure 7, Figure S6, Figure S7
-- spatial_toy_examples: Figure 8, Figure S9
+  - spatial_image_data.Rmd: Figure S8
+- spatial_toy_examples: Figure 8, Figure S10
 - AWC_AWH_tradeoff: Figure S1
 - PWC: Figure S3
 - AMSP_normalization: Figure S4
 - metrics_across_simulations: Figure S5
-- spatial_spatialARI_distFns: Figure S8
+- spatial_spatialARI_distFns: Figure S9
