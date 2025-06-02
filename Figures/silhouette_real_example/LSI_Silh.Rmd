@@ -71,22 +71,47 @@ d2$rank <- rep(seq_len(nrow(d)),2)
 #   labs(y="Cells", x="Silhouette width") + guides(fill=guide_legend(ncol=2))
 # leg <- cowplot::get_legend(psw)
 
-psw1 <- ggplot(d2, aes(x=rank, y=silhW, fill=class, group=class)) + geom_bar(stat = "identity", width = 1) + 
-  facet_wrap(~type, scales="free_y") + 
-  coord_cartesian(xlim=c(-100,max(d2$rank)+100), expand=FALSE) +
-  theme_bw() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), 
-                     axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
-  labs(x="", y="Silhouette width") + guides(fill=guide_legend(ncol=2)) + 
-  coord_flip()
-leg <- cowplot::get_legend(psw)
+# psw1 <- ggplot(d2, aes(x=rank, y=silhW, fill=class, group=class)) + geom_bar(stat = "identity", width = 1) + 
+#   facet_wrap(~type, scales="free_y") + 
+#   coord_cartesian(xlim=c(-100,max(d2$rank)+100), expand=FALSE) +
+#   theme_bw() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), 
+#                      axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+#   labs(x="", y="Silhouette width") + guides(fill=guide_legend(ncol=2)) + 
+#   coord_flip()
+# leg <- cowplot::get_legend(psw)
+# 
+# psw2 <- ggplot(d2, aes(x=rank, y=silhW, fill=closest, group=class)) + geom_bar(stat = "identity", width = 1) + 
+#   facet_wrap(~type, scales="free_y") + 
+#   coord_cartesian(xlim=c(-100,max(d2$rank)+100), expand=FALSE) +
+#   theme_bw() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+#                      axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+#   labs(x="", y="Silhouette width") + guides(fill=guide_legend(ncol=2)) + 
+#   coord_flip()
 
-psw2 <- ggplot(d2, aes(x=rank, y=silhW, fill=closest, group=class)) + geom_bar(stat = "identity", width = 1) + 
-  facet_wrap(~type, scales="free_y") + 
-  coord_cartesian(xlim=c(-100,max(d2$rank)+100), expand=FALSE) +
-  theme_bw() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(),
-                     axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
-  labs(x="", y="Silhouette width") + guides(fill=guide_legend(ncol=2)) + 
-  coord_flip()
+class_labels <- levels(labels)
+names(class_labels)  <- levels(labels)
+class_labels[1] <- "Alveolar Cell"
+class_labels[3] <- "Ductal Cell Pan."
+class_labels[6] <- "Periph. N. Stromal"
+class_labels[7] <- "Parietal Cell"
+
+psw <- ggplot(d2, aes(x=-rank, y=silhW, fill=closest, group=class)) + 
+  geom_bar(stat = "identity", width = 1) + 
+    facet_grid(type~class, scales = "free_x", space = "free",
+               labeller = labeller(class = class_labels)) + 
+  coord_cartesian(expand=FALSE) + 
+  # coord_flip() + 
+    theme_bw() + 
+    labs(x="", y="Silhouette width") +
+  theme(legend.position="none", 
+        panel.border = element_rect(fill = NA), 
+        panel.spacing = unit(0, "lines"),
+        panel.grid = element_blank(),
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(),
+        strip.text.x = element_text(size = 8, angle = 90), 
+        strip.text.y = element_text(size = 8, angle = 90)
+        )
 
 # psw <- ggplot(d2, aes(silhW, class, fill=class)) + geom_vline(xintercept=0) + 
 #   geom_violin() + stat_summary() + facet_wrap(~type) + labs(x="Silhouette widths") +
@@ -125,9 +150,9 @@ pb <- ggplot(d[order(-d$silhW),], aes(LSI_4, LSI_5, colour=silhW)) + geom_point(
 
 ```{r, fig.height=9, fig.width=8.5}
 pdf("LSI_Silh.pdf", width=8.5, height=9)
-plot_grid(plot_grid(umap, psw1 + theme(legend.position = "none"), psw2 + theme(legend.position = "none"), nrow=1, labels="auto", rel_widths=c(2, 1.5, 1.5)),
-          plot_grid(p0 + theme(legend.position = "none") + geom_density2d(color="black", size=0.2), leg, labels=c("d",NA), rel_widths = c(5,2)),
-          plot_grid(p1,pb,nrow=1,labels=letters[5:6]), nrow=3, scale=0.95, rel_heights = c(4,3,3))
+plot_grid(plot_grid(umap, psw + theme(legend.position = "none"), nrow=1, labels="auto", rel_widths=c(2, 3.5)),
+          plot_grid(p0 + theme(legend.position = "none") + geom_density2d(color="black", size=0.2), leg, labels=c("c",NA), rel_widths = c(5,2)),
+          plot_grid(p1,pb,nrow=1,labels=letters[4:5]), nrow=3, scale=0.95, rel_heights = c(4,3,3))
 dev.off()
 ```
 
