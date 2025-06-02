@@ -43,7 +43,7 @@ umap <- ggplot(d, aes(UMAP_1,UMAP_2,colour=class)) + ggrastr::geom_point_rast(si
 
 
 ```{r, fig.height=7, fig.width=8}
-p0 <- ggplot(d, aes(LSI_4, LSI_5, colour=class)) + geom_point() + theme_bw()
+p0 <- ggplot(d, aes(LSI_4, LSI_5, colour=class)) + geom_point(alpha=0.3, size=0.3) + theme_bw()
 an <- data.frame(LSI_4=c(-8,-3), LSI_5=c(-25,-10))
 p1 <- ggplot(d[order(-d$log10sum),], aes(LSI_4, LSI_5, colour=log10sum)) + geom_point() + theme_bw() + scale_colour_viridis_c() +
     labs(colour="log10 total\ncounts") + geom_line(data=an, colour="black", linetype="dashed") +
@@ -69,8 +69,9 @@ pb <- ggplot(d[order(-d$silhW),], aes(LSI_4, LSI_5, colour=silhW)) + geom_point(
 ```{r, fig.height=9, fig.width=8.5}
 pdf("LSI_Silh.pdf", width=8.5, height=9)
 plot_grid(plot_grid(umap, psw + theme(legend.position = "none"), nrow=1, labels="auto", rel_widths=c(2,3)),
-          plot_grid(p0 + theme(legend.position = "none"), leg, labels=c("c",NA), rel_widths = c(5,2)),
+          plot_grid(p0 + theme(legend.position = "none") + geom_density2d(color="black", size=0.2), leg, labels=c("c",NA), rel_widths = c(5,2)),
           plot_grid(p1,pb,nrow=1,labels=letters[4:5]), nrow=3, scale=0.95, rel_heights = c(4,3,3))
 dev.off()
 ```
+
 
