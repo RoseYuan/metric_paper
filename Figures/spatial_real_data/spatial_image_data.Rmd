@@ -191,7 +191,7 @@ p2 <- res %>%
   labs(x="Metric", y="Value", color="Method", shape="Metric Category") +
   theme(legend.position = "bottom",
         legend.margin = margin(t = -5),  # Increase top margin of legend (space above it)
-    plot.margin = margin(0, 1, 0, 1)  # top, right, bottom, left margins around plot
+    plot.margin = margin(0, 5, 0, 5)  # top, right, bottom, left margins around plot
     )
 p2
 ```
