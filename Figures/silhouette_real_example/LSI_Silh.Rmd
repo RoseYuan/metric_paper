@@ -2,6 +2,8 @@
 title: "Silhouette width and distance metric on LSI embedding of scATAC"
 author: "Pierre-Luc Germain"
 output: workflowr::wflow_html
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup}
@@ -18,18 +20,73 @@ d <- readRDS("../../data/silhouette_real_life_examples/Atlas2_ArchR_tiles_ndim15
 levels(d$class) <- gsub("_","\n",gsub("_[0-9]|_Type","",levels(d$class)))
 ```
 
+```{r}
+x <- d[,paste0("LSI_", 1:15)]
+labels <- d$class
+
+closest_centroid <- function(embedding, labels, method = c("euclidean", "cosine")) {
+  method <- match.arg(method)
+  embedding <- as.matrix(embedding)
+  labels <- as.factor(labels)
+  
+  # Compute centroids
+  centroids <- t(sapply(levels(labels), function(class) {
+    colMeans(embedding[labels == class, ])
+  }))
+  rownames(centroids) <- levels(labels)
+  
+  # Normalize if using cosine distance
+  if (method == "cosine") {
+    distances <- proxy::dist(embedding, centroids, method = "cosine")
+  } else if (method == "euclidean") {
+      distances <- proxy::dist(embedding, centroids, method = "euclidean")
+  } else {stop("Unknown method")}
+  # Find closest class
+  closest_indices <- apply(distances, 1, which.min)
+  closest_classes <- levels(labels)[closest_indices]
+  
+  return(closest_classes)
+}
+
+res <- closest_centroid(x, labels, method = "cosine")
+
+sil.euclidean <- as.data.frame(cluster::silhouette(as.numeric(labels), dist(x, method="euclidean")))
+sil.euclidean <- sil.euclidean %>% mutate(closest=ifelse(sil_width > 0, cluster, neighbor))
+d$closest.euclidean <- levels(labels)[sil.euclidean$closest]
+d$closest.cosine <- res
+```
+
 ```{r, fig.width=8, fig.height=5}
-d2 <- data.frame(class=rep(d$class,2), silhW=c(d$silhW, d$cosSilhW), 
-                 type=rep(factor(c("Euclidean","Cosine"),c("Euclidean","Cosine")), each=nrow(d)))
+d2 <- data.frame(cell=c(rownames(d), rownames(d)),
+                 class=rep(d$class,2), silhW=c(d$silhW, d$cosSilhW), 
+                 type=rep(factor(c("Euclidean","Cosine"),c("Euclidean","Cosine")), each=nrow(d)),
+                 closest=c(as.character(d$closest.euclidean), as.character(d$closest.cosine)))
+d2$closest <- d2$closest %>% factor(levels=levels(d$class))
 d2 <- d2[order(d2$type,d2$class,d2$silhW),]
 d2$rank <- rep(seq_len(nrow(d)),2)
 
+# psw1 <- ggplot(d2, aes(y=rank, xmin=0, xmax=silhW, fill=class, group=class)) + geom_ribbon() + 
+#   facet_wrap(~type, scales="free_y") + coord_cartesian(ylim=c(-100,max(d2$rank)+100), expand=FALSE) +
+#   theme_bw() + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+#   labs(y="Cells", x="Silhouette width") + guides(fill=guide_legend(ncol=2))
+# leg <- cowplot::get_legend(psw)
 
-psw <- ggplot(d2, aes(y=rank, xmin=0, xmax=silhW, fill=class, group=class)) + geom_ribbon() + 
-  facet_wrap(~type, scales="free_y") + coord_cartesian(ylim=c(-100,max(d2$rank)+100), expand=FALSE) +
-  theme_bw() + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
-  labs(y="Cells", x="Silhouette width") + guides(fill=guide_legend(ncol=2))
+psw1 <- ggplot(d2, aes(x=rank, y=silhW, fill=class, group=class)) + geom_bar(stat = "identity", width = 1) + 
+  facet_wrap(~type, scales="free_y") + 
+  coord_cartesian(xlim=c(-100,max(d2$rank)+100), expand=FALSE) +
+  theme_bw() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), 
+                     axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+  labs(x="", y="Silhouette width") + guides(fill=guide_legend(ncol=2)) + 
+  coord_flip()
 leg <- cowplot::get_legend(psw)
+
+psw2 <- ggplot(d2, aes(x=rank, y=silhW, fill=closest, group=class)) + geom_bar(stat = "identity", width = 1) + 
+  facet_wrap(~type, scales="free_y") + 
+  coord_cartesian(xlim=c(-100,max(d2$rank)+100), expand=FALSE) +
+  theme_bw() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                     axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+  labs(x="", y="Silhouette width") + guides(fill=guide_legend(ncol=2)) + 
+  coord_flip()
 
 # psw <- ggplot(d2, aes(silhW, class, fill=class)) + geom_vline(xintercept=0) + 
 #   geom_violin() + stat_summary() + facet_wrap(~type) + labs(x="Silhouette widths") +
@@ -68,9 +125,9 @@ pb <- ggplot(d[order(-d$silhW),], aes(LSI_4, LSI_5, colour=silhW)) + geom_point(
 
 ```{r, fig.height=9, fig.width=8.5}
 pdf("LSI_Silh.pdf", width=8.5, height=9)
-plot_grid(plot_grid(umap, psw + theme(legend.position = "none"), nrow=1, labels="auto", rel_widths=c(2,3)),
-          plot_grid(p0 + theme(legend.position = "none") + geom_density2d(color="black", size=0.2), leg, labels=c("c",NA), rel_widths = c(5,2)),
-          plot_grid(p1,pb,nrow=1,labels=letters[4:5]), nrow=3, scale=0.95, rel_heights = c(4,3,3))
+plot_grid(plot_grid(umap, psw1 + theme(legend.position = "none"), psw2 + theme(legend.position = "none"), nrow=1, labels="auto", rel_widths=c(2, 1.5, 1.5)),
+          plot_grid(p0 + theme(legend.position = "none") + geom_density2d(color="black", size=0.2), leg, labels=c("d",NA), rel_widths = c(5,2)),
+          plot_grid(p1,pb,nrow=1,labels=letters[5:6]), nrow=3, scale=0.95, rel_heights = c(4,3,3))
 dev.off()
 ```
 
