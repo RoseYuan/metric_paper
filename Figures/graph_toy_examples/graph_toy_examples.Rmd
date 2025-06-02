@@ -30,7 +30,7 @@ getGraphStats <- function(knn){
 }
 
 df2knn <- function(d1, k=7, ...){
-  knn <- BiocNeighbors::findKNN(d1[,1:2], k=k, ...)
+  knn <- BiocNeighbors::findKNN(as.matrix(d1[,1:2]), k=k, ...)
   knn$class <- factor(d1$class)
   knn
 }
@@ -95,7 +95,7 @@ gs3$variable <- factor(gs3$variable, c("modularity", "cohesion", "adhesion", "AM
 gs3 <- gs3[which(!(gs3$variable %in% c("adhesion","NCE"))),]
 gs3$level <- factor(gs3$class, c("graph","1","2"), c("graph","class1","class2"))
 
-p1b <- ggplot(gs3, aes(graph, value, colour=level, group=level)) + geom_point() + geom_line() + 
+p1b <- ggplot(gs3, aes(graph, value, colour=level, group=level)) + geom_point(alpha=0.6) + geom_line(alpha=0.6) + 
   facet_wrap(~variable, scales="free_y", nrow=1) + theme_classic() + 
   scale_colour_manual(values=c(class1="#F8766D", class2="#00BFC4", graph="black")) +
   theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5),
@@ -140,7 +140,8 @@ gs3$level <- factor(gs3$class, c("graph",paste0("class",1:4)))
 cols <- c(setNames(scales::hue_pal()(length(unique(db$class))), unique(db$class)),
           graph="black")
 
-p2 <- ggplot(gs3, aes(graph, value, colour=level, group=level)) + geom_point() + geom_line() + 
+p2 <- ggplot(gs3, aes(graph, value, colour=level, group=level)) + 
+  geom_point(alpha=0.6) + geom_line(alpha=0.6) + 
   facet_wrap(~variable, scales="free_y", nrow=1) + theme_classic() + 
   scale_colour_manual(values=cols)  + 
   theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5),
