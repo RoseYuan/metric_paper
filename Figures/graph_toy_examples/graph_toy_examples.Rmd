@@ -140,6 +140,9 @@ gs3$level <- factor(gs3$class, c("graph",paste0("class",1:4)))
 cols <- c(setNames(scales::hue_pal()(length(unique(db$class))), unique(db$class)),
           graph="black")
 
+# mv a bit the cohesion so make the line visible
+gs3$value[which(gs3$class=="class1" & gs3$variable=="cohesion")] <- c(0.99,0.01,0.01)
+
 p2 <- ggplot(gs3, aes(graph, value, colour=level, group=level)) + 
   geom_point(alpha=0.6) + geom_line(alpha=0.6) + 
   facet_wrap(~variable, scales="free_y", nrow=1) + theme_classic() + 
