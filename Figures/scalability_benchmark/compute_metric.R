@@ -1,6 +1,7 @@
 suppressPackageStartupMessages({
 library(optparse)
 library(poem)
+library(spARI)
 })
 
 
@@ -67,6 +68,8 @@ if(file.exists(opt$pred)){
     }else if (opt$metric %in% c("SpatialARI", "SpatialRI", "SpatialSPC", "SpatialAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC")){
         res <- do.call(getSpatialExternalMetrics, c(list(true=df[, opt$true], pred=df[, opt$pred_col], location=df[,c("x","y")], metrics=opt$metric,level=opt$level), extra_args))
         # res <- getSpatialExternalMetrics(true=df[, opt$true], pred=df[, opt$pred_col], location=df[,c("x","y")], metrics=opt$metric,level=opt$level)
+    }else if(opt$metric == "SpatialARI_Yan"){
+        res <- do.call(spARI, c(list(r_labels=df[, opt$true], c_labels=df[, opt$pred_col], coords=df[,c("x","y")]), extra_args))
     }else{
         stop("Invalid metric name. Please check the metric name.")
     }
