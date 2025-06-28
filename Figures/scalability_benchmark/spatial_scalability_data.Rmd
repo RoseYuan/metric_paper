@@ -1,0 +1,239 @@
+---
+title: "spatial_image_data"
+output: html_document
+date: "2025-05-05"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(cowplot)
+library(dplyr)
+library(ComplexHeatmap)
+library(ggokabeito)
+library(RColorBrewer)
+source("../../utils.R")
+```
+
+
+```{r, eval=FALSE}
+# code to perform subsampling and create the data object
+df <- read.table("../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/coordinates.tsv", sep='\t', header=TRUE)
+colnames(df) <- c("id", "x", "y")
+
+labels <- read.table("../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/labels.tsv", sep='\t', header=TRUE)
+colnames(labels) <- c("id", "label")
+df <- merge(df, labels, by="id")
+
+obs <- read.table("../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/observations.tsv", sep='\t', header=TRUE)
+obs <- rename(obs, id = "X")
+df <- merge(df, obs, by="id")
+
+res <- read.table("../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/CellCharter/CellCharter/config_default/combined_domains.tsv", sep='\t', header=TRUE)
+res <- rename(res, id = "X")
+df <- merge(res, df, by="id")
+
+
+t1 <- c(60000, 55000, 50000)
+t2 <- c(0, 5000, 10000)
+
+df2 <- df %>% filter(x < t1[1], y > t2[1])
+df3 <- df %>% filter(x < t1[2], y > t2[2])
+df4 <- df %>% filter(x < t1[3], y > t2[3])
+
+saveRDS(list(df1=df, 
+             df2=df2,
+             df3=df3,
+             df4=df4), 
+        file="../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/subsampled.RDS")
+```
+
+
+```{r}
+t1 <- c(60000, 55000, 50000)
+t2 <- c(0, 5000, 10000)
+mycol <- c( "#3283FE", "#F6222E", "#AAF400")
+res <- readRDS("../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/subsampled.RDS")
+df <- res$df1
+
+set.seed(123)  # For reproducibility
+n_points <- 50000
+df_sampled <- df[sample(nrow(df), min(n_points, nrow(df))), ]
+
+p <- ggplot(df_sampled) +
+  geom_point(aes(x = x, y = y, color=label), size = 0.5) +
+  geom_segment(x = 40000, xend = t1[1], y = t2[1], yend = t2[1], color = mycol[1], linetype = "dashed") + 
+  geom_segment(x = t1[1], xend = t1[1], y = t2[1], yend = 22681, color = mycol[1], linetype = "dashed") +
+  geom_segment(x = 40000, xend = t1[2], y = t2[2], yend = t2[2], color = mycol[2], linetype = "dashed") +  
+  geom_segment(x = t1[2], xend = t1[2], y = t2[2], yend = 22681, color = mycol[2], linetype = "dashed") +
+  geom_segment(x = 40000, xend = t1[3], y = t2[3], yend = t2[3], color = mycol[3], linetype = "dashed") +  
+  geom_segment(x = t1[3], xend = t1[3], y = t2[3], yend = 22681, color = mycol[3], linetype = "dashed") +
+  labs(x = "", y = "", color="Annotation") +
+  theme_minimal() + 
+  guides(color = guide_legend(override.aes = list(size = 5)))  
+
+legend_plot <- ggplot() +
+  geom_segment(aes(x = 0, xend = 1, y = 1:3, yend = 1:3, color = factor(1:3)), 
+               linetype = "dashed", show.legend = TRUE) +
+  scale_color_manual(values = mycol[1:3], labels = c("n1=107775", "n2=72173", "n3=33285")) +
+  theme_void() +
+  theme(legend.position = "right", legend.title = element_blank())
+
+```
+
+```{r, eval=FALSE}
+# Code to collect the scalability data
+paths <- c(
+  "../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/scalability_benchmark2/benchmarks/size1/k5",
+  "../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/scalability_benchmark2/benchmarks/size2/k5",
+  "../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/scalability_benchmark2/benchmarks/size3/k5",
+  "../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/scalability_benchmark2/benchmarks/size4/k5"
+)
+all_tables <- list()
+for (i in 1:4) {
+  path <- paths[i]
+  txt_files <- list.files(path, pattern = "\\.txt$", full.names = TRUE)
+  tables <- lapply(txt_files, function(file) {
+    df <- read.table(file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    df$file_name <- gsub(".txt","", basename(file))  # Add a column with the file name
+    df$size <- i
+    return(df)
+  })
+  all_tables <- c(all_tables, tables)
+}
+
+combined_table <- do.call(rbind, all_tables)
+combined_table <- extract(
+  combined_table,
+  file_name,
+  into = c("metric", "parameter"),
+  regex = "^(.*)_(.*)$"
+)
+combined_table <- combined_table %>% mutate(
+  metric_params = ifelse(grepl("ns", metric), 
+                        paste0(metric, ":", parameter),
+                        metric)
+  )
+sizes <- c(136870, 107775, 72173, 33285)
+combined_table$size <- sizes[combined_table$size]
+write.table(combined_table, file = "../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/scalability_benchmark2/combined_results.tsv", sep = "\t", row.names = FALSE, quote=FALSE)
+```
+
+```{r}
+data <- read.table("../../data/spatial_real_data/visium_hd_cancer_colon_square_016um_small/scalability_benchmark2/combined_results.tsv", sep="\t", header=TRUE)
+data <- data %>% mutate(metric_group = case_when(
+    metric %in% c("ASPC", "SPC", "AWC", "AWH", "ARI","NCR") ~ "Partition",
+    metric %in% c("cdbw", "compactness", "dbcv", "meanSW") ~ "Embedding",
+    metric %in% c("AMSP", "NCE", "NP", "PWC", "cohesion", "adhesion") ~ "Graph",
+    metric %in% c("SpatialARI", "SpatialRI", "SpatialSPC", "SpatialARI_Yan") ~ "Spatial_weighting",
+    metric %in% c("nsAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC") ~ "Spatial_ns",
+    TRUE ~ "Other"  # fallback category
+  ))
+data$metric_group <- factor(data$metric_group, 
+                                  levels = c("Partition", "Embedding", "Graph", "Spatial_weighting", "Spatial_ns", "Other"))
+data$metric <- factor(data$metric, 
+                                  levels = c("ASPC", "SPC", "AWC", "AWH", "ARI", "NCR", 
+                                             "cdbw", "compactness", "dbcv", "meanSW",
+                                             "AMSP", "NCE", "NP", "PWC", "cohesion", "adhesion",
+                                             "SpatialARI", "SpatialRI", "SpatialSPC", "SpatialARI_Yan",
+                                             "nsAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC"))
+```
+
+```{r}
+data$cpu_time <- data$cpu_time / 60  # Convert to minutes
+df_median <- data %>%
+  group_by(metric, size) %>%
+  summarize(median_cpu_time = median(cpu_time), .groups = "drop")
+
+df_median <- df_median %>% mutate(metric_group = case_when(
+    metric %in% c("ASPC", "SPC", "AWC", "AWH", "ARI","NCR") ~ "Partition",
+    metric %in% c("cdbw", "compactness", "dbcv", "meanSW") ~ "Embedding",
+    metric %in% c("AMSP", "NCE", "NP", "PWC", "cohesion", "adhesion") ~ "Graph",
+    metric %in% c("SpatialARI", "SpatialRI", "SpatialSPC", "SpatialARI_Yan") ~ "Spatial_weighting",
+    metric %in% c("nsAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC") ~ "Spatial_ns",
+    TRUE ~ "Other"  # fallback category
+  ))
+df_median$metric <- factor(df_median$metric, 
+                                  levels = c("ASPC", "SPC", "AWC", "AWH", "ARI", "NCR", 
+                                             "cdbw", "compactness", "dbcv", "meanSW",
+                                             "AMSP", "NCE", "NP", "PWC", "cohesion", "adhesion",
+                                             "SpatialARI", "SpatialRI", "SpatialSPC", "SpatialARI_Yan",
+                                             "nsAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC"))
+df_median$metric_group <- factor(df_median$metric_group, 
+                                  levels = c("Partition", "Embedding", "Graph", "Spatial_weighting", "Spatial_ns", "Other"))
+
+set.seed(423)
+my_new_col_polychrome <- sample(my_col_polychrome)
+
+p1 <- ggplot(data, aes(x = size, y = cpu_time, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median, aes(x = size, y = median_cpu_time, group = metric, color = metric), size = 1) +
+  # geom_boxplot(
+  #   aes(group = interaction(size, metric), fill = metric),
+  #   alpha = 0.3,
+  #   outlier.shape = NA,
+  #   width = 5000,  # Adjust this depending on your `size` spacing
+  #   position = position_dodge(width = 100)) +
+  facet_wrap(~ metric_group, scales = "free_y", ncol = 5) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 14), legend.position = "bottom", legend.box="vertical") + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="Dataset size [number of cells]", y="CPU time [min]", color='Metric', fill="Metric")
+```
+
+```{r}
+data$max_rss <- data$max_rss / 1024  # Convert to GB
+df_median <- data %>%
+  group_by(metric, size) %>%
+  summarize(median_max_rss = median(max_rss), .groups = "drop")
+
+df_median <- df_median %>% mutate(metric_group = case_when(
+    metric %in% c("ASPC", "SPC", "AWC", "AWH", "ARI","NCR") ~ "Partition",
+    metric %in% c("cdbw", "compactness", "dbcv", "meanSW") ~ "Embedding",
+    metric %in% c("AMSP", "NCE", "NP", "PWC", "cohesion", "adhesion") ~ "Graph",
+    metric %in% c("SpatialARI", "SpatialRI", "SpatialSPC", "SpatialARI_Yan") ~ "Spatial_weighting",
+    metric %in% c("nsAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC") ~ "Spatial_ns",
+    TRUE ~ "Other"  # fallback category
+  ))
+
+df_median$metric <- factor(df_median$metric, 
+                                  levels = c("ASPC", "SPC", "AWC", "AWH", "ARI", "NCR", 
+                                             "cdbw", "compactness", "dbcv", "meanSW",
+                                             "AMSP", "NCE", "NP", "PWC", "cohesion", "adhesion",
+                                             "SpatialARI", "SpatialRI", "SpatialSPC", "SpatialARI_Yan",
+                                             "nsAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC"))
+df_median$metric_group <- factor(df_median$metric_group, 
+                                  levels = c("Partition", "Embedding", "Graph", "Spatial_weighting", "Spatial_ns", "Other"))
+
+p2 <- ggplot(data, aes(x = size, y = max_rss, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size =1) +  # dots for all runs
+  geom_line(data = df_median, aes(x = size, y = median_max_rss, group = metric, color = metric), size = 1) +
+  labs(x="Dataset size [number of cells]", y="Peak memory [GB]", color='Metric') +
+  facet_wrap(~ metric_group, scales = "free_y", ncol=5) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 14), legend.position = "bottom", legend.box="vertical") +
+  scale_color_manual(values=my_new_col_polychrome, 
+                     guide = guide_legend(nrow = 3))
+```
+
+
+```{r}
+pdf("dataset_overview.pdf", width=8, height=7)
+cowplot::plot_grid(p + theme(legend.position = "bottom"), 
+                   cowplot::get_legend(legend_plot), ncol = 2, rel_widths = c(0.8, 0.2))
+dev.off()
+
+pdf("scalability_results.pdf", width=12, height=6)
+(p1/p2)  + plot_layout(guides = "collect") &theme(legend.position = "bottom")
+dev.off()
+```
+
+
+
+
+
