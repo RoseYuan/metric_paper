@@ -14,6 +14,7 @@ library(dplyr)
 library(ComplexHeatmap)
 library(ggokabeito)
 library(RColorBrewer)
+library(stringr)
 source("../../utils.R")
 ```
 
@@ -52,6 +53,7 @@ saveRDS(list(df1=df,
 
 
 ```{r}
+library(ggrastr)
 t1 <- c(60000, 55000, 50000)
 t2 <- c(0, 5000, 10000)
 mycol <- c( "#3283FE", "#F6222E", "#AAF400")
@@ -167,7 +169,9 @@ df_median$metric_group <- factor(df_median$metric_group,
 set.seed(423)
 my_new_col_polychrome <- sample(my_col_polychrome)
 
-p1 <- ggplot(data, aes(x = size, y = cpu_time, color = metric)) +
+p1 <- data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  ggplot(aes(x = size, y = cpu_time, color = metric)) +
   geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
   geom_line(data = df_median, aes(x = size, y = median_cpu_time, group = metric, color = metric), size = 1) +
   # geom_boxplot(
@@ -209,7 +213,9 @@ df_median$metric <- factor(df_median$metric,
 df_median$metric_group <- factor(df_median$metric_group, 
                                   levels = c("Partition", "Embedding", "Graph", "Spatial_weighting", "Spatial_ns", "Other"))
 
-p2 <- ggplot(data, aes(x = size, y = max_rss, color = metric)) +
+p2 <- data %>% 
+  filter(parameter=="default" | metric=="ASPC" | metric=="nsAWC") %>%
+  ggplot(aes(x = size, y = max_rss, color = metric)) +
   geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size =1) +  # dots for all runs
   geom_line(data = df_median, aes(x = size, y = median_max_rss, group = metric, color = metric), size = 1) +
   labs(x="Dataset size [number of cells]", y="Peak memory [GB]", color='Metric') +
@@ -221,6 +227,9 @@ p2 <- ggplot(data, aes(x = size, y = max_rss, color = metric)) +
                      guide = guide_legend(nrow = 3))
 ```
 
+```{r}
+
+```
 
 ```{r}
 pdf("dataset_overview.pdf", width=8, height=7)
