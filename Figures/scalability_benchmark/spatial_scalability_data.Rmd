@@ -145,9 +145,11 @@ data$metric <- factor(data$metric,
 
 ```{r}
 data$cpu_time <- data$cpu_time / 60  # Convert to minutes
+data$max_rss <- data$max_rss / 1024  # Convert to GB
 df_median <- data %>%
   group_by(metric, size) %>%
-  summarize(median_cpu_time = median(cpu_time), .groups = "drop")
+  summarize(median_cpu_time = median(cpu_time), 
+            median_max_rss = median(max_rss), .groups = "drop")
 
 df_median <- df_median %>% mutate(metric_group = case_when(
     metric %in% c("ASPC", "SPC", "AWC", "AWH", "ARI","NCR") ~ "Partition",
@@ -168,57 +170,32 @@ df_median$metric_group <- factor(df_median$metric_group,
 
 set.seed(423)
 my_new_col_polychrome <- sample(my_col_polychrome)
+my_new_col_polychrome <- setNames(my_new_col_polychrome[1:25], levels(data$metric))
+```
 
+```{r, eval=FALSE, echo=FALSE}
 p1 <- data %>% 
   filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  
   ggplot(aes(x = size, y = cpu_time, color = metric)) +
   geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
   geom_line(data = df_median, aes(x = size, y = median_cpu_time, group = metric, color = metric), size = 1) +
-  # geom_boxplot(
-  #   aes(group = interaction(size, metric), fill = metric),
-  #   alpha = 0.3,
-  #   outlier.shape = NA,
-  #   width = 5000,  # Adjust this depending on your `size` spacing
-  #   position = position_dodge(width = 100)) +
   facet_wrap(~ metric_group, scales = "free_y", ncol = 5) +
   scale_y_log10() +
   theme_bw() +
   theme(text = element_text(size = 14), legend.position = "bottom", legend.box="vertical") + 
   scale_color_manual(values=my_new_col_polychrome,
                      guide = guide_legend(nrow = 3)) +
-  labs(x="Dataset size [number of cells]", y="CPU time [min]", color='Metric', fill="Metric")
+  labs(x="Number of cells", y="CPU time [min]", color='Metric', fill="Metric")
 ```
 
-```{r}
-data$max_rss <- data$max_rss / 1024  # Convert to GB
-df_median <- data %>%
-  group_by(metric, size) %>%
-  summarize(median_max_rss = median(max_rss), .groups = "drop")
-
-df_median <- df_median %>% mutate(metric_group = case_when(
-    metric %in% c("ASPC", "SPC", "AWC", "AWH", "ARI","NCR") ~ "Partition",
-    metric %in% c("cdbw", "compactness", "dbcv", "meanSW") ~ "Embedding",
-    metric %in% c("AMSP", "NCE", "NP", "PWC", "cohesion", "adhesion") ~ "Graph",
-    metric %in% c("SpatialARI", "SpatialRI", "SpatialSPC", "SpatialARI_Yan") ~ "Spatial_weighting",
-    metric %in% c("nsAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC") ~ "Spatial_ns",
-    TRUE ~ "Other"  # fallback category
-  ))
-
-df_median$metric <- factor(df_median$metric, 
-                                  levels = c("ASPC", "SPC", "AWC", "AWH", "ARI", "NCR", 
-                                             "cdbw", "compactness", "dbcv", "meanSW",
-                                             "AMSP", "NCE", "NP", "PWC", "cohesion", "adhesion",
-                                             "SpatialARI", "SpatialRI", "SpatialSPC", "SpatialARI_Yan",
-                                             "nsAccuracy", "nsARI", "nsAWC", "nsAWH", "nsSPC"))
-df_median$metric_group <- factor(df_median$metric_group, 
-                                  levels = c("Partition", "Embedding", "Graph", "Spatial_weighting", "Spatial_ns", "Other"))
-
+```{r, eval=FALSE, echo=FALSE}
 p2 <- data %>% 
   filter(parameter=="default" | metric=="ASPC" | metric=="nsAWC") %>%
   ggplot(aes(x = size, y = max_rss, color = metric)) +
   geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size =1) +  # dots for all runs
   geom_line(data = df_median, aes(x = size, y = median_max_rss, group = metric, color = metric), size = 1) +
-  labs(x="Dataset size [number of cells]", y="Peak memory [GB]", color='Metric') +
+  labs(x="Number of cells", y="Peak memory [GB]", color='Metric') +
   facet_wrap(~ metric_group, scales = "free_y", ncol=5) +
   scale_y_log10() +
   theme_bw() +
@@ -227,8 +204,171 @@ p2 <- data %>%
                      guide = guide_legend(nrow = 3))
 ```
 
-```{r}
 
+```{r, eval=FALSE, echo=FALSE}
+pdf("scalability_results.pdf", width=12, height=6)
+(p1/p2)  + plot_layout(guides = "collect") &theme(legend.position = "bottom")
+dev.off()
+```
+
+```{r}
+group <- "Partition"
+p1.1 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = cpu_time, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_cpu_time, group = metric, color = metric), size = 1) +
+  # facet_wrap(~ metric_group, scales = "free_y", ncol = 5) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="", y="CPU time [min]", color='', title=group)
+
+p1.2 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = max_rss, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_max_rss, group = metric, color = metric), size = 1) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="Number of cells", y="Peak memory [GB]", color='')
+
+p1 <- (p1.1/p1.2)  + plot_layout(guides = "collect") &theme(legend.position = "bottom")
+```
+
+```{r}
+group <- "Embedding"
+p2.1 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = cpu_time, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_cpu_time, group = metric, color = metric), size = 1) +
+  # facet_wrap(~ metric_group, scales = "free_y", ncol = 5) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="", y="", color='', title=group)
+
+p2.2 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = max_rss, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_max_rss, group = metric, color = metric), size = 1) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="Number of cells", y="", color='')
+
+p2 <- (p2.1/p2.2)  + plot_layout(guides = "collect") &theme(legend.position = "bottom")
+```
+
+```{r}
+group <- "Graph"
+p3.1 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = cpu_time, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_cpu_time, group = metric, color = metric), size = 1) +
+  # facet_wrap(~ metric_group, scales = "free_y", ncol = 5) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="", y="", color='', title=group)
+
+p3.2 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = max_rss, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_max_rss, group = metric, color = metric), size = 1) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="Number of cells", y="", color='')
+
+p3 <- (p3.1/p3.2)  + plot_layout(guides = "collect") &theme(legend.position = "bottom")
+```
+
+```{r}
+group <- "Spatial_weighting"
+p4.1 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = cpu_time, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_cpu_time, group = metric, color = metric), size = 1) +
+  # facet_wrap(~ metric_group, scales = "free_y", ncol = 5) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="", y="", color='', title=group)
+
+p4.2 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = max_rss, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_max_rss, group = metric, color = metric), size = 1) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="Number of cells", y="", color='')
+
+p4 <- (p4.1/p4.2)  + plot_layout(guides = "collect") &theme(legend.position = "bottom")
+```
+
+```{r}
+group <- "Spatial_ns"
+p5.1 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = cpu_time, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_cpu_time, group = metric, color = metric), size = 1) +
+  # facet_wrap(~ metric_group, scales = "free_y", ncol = 5) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="", y="", color='', title=group)
+
+p5.2 <-  data %>% 
+  filter(parameter=="default" | metric_params=="ASPC" | metric=="nsAWC") %>%
+  filter(metric_group == group) %>%
+  ggplot(aes(x = size, y = max_rss, color = metric)) +
+  geom_point(position = position_jitter(width = 0.1), alpha = 0.7, size = 1) +  # dots for all runs
+  geom_line(data = df_median[df_median$metric_group==group, ], aes(x = size, y = median_max_rss, group = metric, color = metric), size = 1) +
+  scale_y_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 10), legend.position = "bottom", legend.box="vertical", plot.title = element_text(hjust = 0.5)) + 
+  scale_color_manual(values=my_new_col_polychrome,
+                     guide = guide_legend(nrow = 3)) +
+  labs(x="Number of cells", y="", color='')
+
+p5 <- (p5.1/p5.2)  + plot_layout(guides = "collect") &theme(legend.position = "bottom")
 ```
 
 ```{r}
@@ -236,12 +376,16 @@ pdf("dataset_overview.pdf", width=8, height=7)
 cowplot::plot_grid(p + theme(legend.position = "bottom"), 
                    cowplot::get_legend(legend_plot), ncol = 2, rel_widths = c(0.8, 0.2))
 dev.off()
-
-pdf("scalability_results.pdf", width=12, height=6)
-(p1/p2)  + plot_layout(guides = "collect") &theme(legend.position = "bottom")
-dev.off()
 ```
 
+
+```{r}
+pdf("scalability_results.pdf", width=13.3, height=5.5)
+(p1 | p2 | p3 | p4 | p5) + 
+  plot_layout(widths = c(1, 1, 1, 1, 1)) & 
+  theme(plot.margin = margin(1, 0.5, 0, 0.5))
+dev.off()
+```
 
 
 
