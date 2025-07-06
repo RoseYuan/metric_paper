@@ -12,16 +12,16 @@ suppressPackageStartupMessages({
 ```
 
 ```{r, fig.width=5, fig.height=4}
-d <- data.frame(x=rep(seq_len(50),50), y=rep(seq_len(50),each=50), true="A")
-d$true[which(d$y<25)] <- "B"
-d$true[which(d$y < 30 & d$y>20)] <- "C"
-d$true[which(d$y>=30 & d$x<20)] <- "D"
+d <- data.frame(x=rep(seq_len(40),40), y=rep(seq_len(40),each=40), true="A")
+d$true[which(d$y<20)] <- "B"
+d$true[which(d$y < 30 & d$y>15)] <- "C"
+d$true[which(d$y>=30 & d$x<15)] <- "D"
 ptrue <- ggplot(d, aes(x,y,fill=true)) + geom_tile(width=0.85, height=0.85) + theme(legend.position = "none") + ggtitle("Truth")
 ```
 
 ```{r}
 d$pred2 <- d$true
-d$pred2[which(d$y %in% c(26,21) & d$x %in% c(15:35))] <- "B"
+d$pred2[which(d$y %in% c(21,16) & d$x %in% c(10:30))] <- "B"
 d$pred <- d$pred2
 p2 <- ggplot(d, aes(x,y,fill=pred2)) + geom_tile(width=0.85, height=0.85) +
   theme(legend.position = "none") + ggtitle("P2")
@@ -66,7 +66,8 @@ doPlot <- function(d, what="true", leg=TRUE, cap=NULL, title=what, name=NULL, hi
   if(is.numeric(d[[what]])){
     rg <- round(range(d[[what]], na.rm=TRUE),1)
     #p <- p + scale_fill_viridis_c(breaks=c(0.1,0.75,1), name = name, option="H")
-    p <- p + scale_fill_gradientn(colours = c("black", "darkred", "darkblue", "green", "lightyellow"), breaks=c(0.1,0.5,0.75,1), name = name)
+    p <- p + scale_fill_viridis_c(option = "B", direction=-1)
+    #p <- p + scale_fill_gradientn(colours = rev(c("black", "darkred", "darkblue", "green", "lightyellow")), breaks=c(0.1,0.5,0.75,1), name = name)
   }
   if(!is.null(highlight)){
     p <- p + geom_tile(data=d[highlight,], colour="black", size=0.5, fill="white") + 
@@ -77,34 +78,46 @@ doPlot <- function(d, what="true", leg=TRUE, cap=NULL, title=what, name=NULL, hi
   }else{
     p <- p + theme(legend.position = "right", plot.title=element_text(hjust = 0.5))
   }
-  p
+  p + theme(aspect.ratio = 1)
+}
+
+doDiffPlot <- function(d, what, title=what, leg=TRUE){
+  d$relative <- d[[what]]-d$PC
+  doPlot(d, "relative", title=title, leg=leg) + 
+    scale_fill_viridis_c(direction=-1) +
+    labs(fill="Difference to\nnon-spatial\nspot-wise\nconcordance")
 }
 ```
 
 ```{r}
-d$weights1 <- getSpotWeights(1020, d, original = TRUE)
-d$weights1b <- getSpotWeights(1270, d, original = TRUE)
-d$weights2 <- getSpotWeights(1020, d, original = FALSE)
-d$weights2b <- getSpotWeights(1270, d, original = FALSE)
+d$weights1 <- getSpotWeights(615, d, original = TRUE)
+d$weights1b <- getSpotWeights(815, d, original = TRUE)
+d$weights2 <- getSpotWeights(615, d, original = FALSE)
+d$weights2b <- getSpotWeights(815, d, original = FALSE)
+fl <- poem:::getFuzzyLabel(d$true, k = 8, d[,1:2])
+d$nsConc <- poem:::fuzzyHardSpotConcordance(d$true, fl, hardPred=d$pred2, useNegatives = TRUE)
 ```
 
 
-```{r, fig.width=12, fig.height=13}
+```{r, fig.width=12, fig.height=15}
+p1 <- doPlot(d, "true", title="\nTrue domains")
+p2 <- doPlot(d, "pred", title="\nPredicted domains")
+p3 <- doPlot(d, "PC", title="Spot-wise Pair\nconcordance (SPC)")
 
-p1 <- doPlot(d, "true", title="True domains")
-p2 <- doPlot(d, "pred", title="Predicted domains")
-p3 <- doPlot(d, "PC", title="Pair concordance (SPC)")
+p4 <- doPlot(d, "spatialPC1", title="Spatially-aware\nconcordance (original)") + labs(fill="Spatial\nSPC")
+p5 <- doPlot(d, "weights1", title="Spatially-aware concordance\nwith selected (original)", highlight=615) + labs(fill="weight")
+p6 <- doPlot(d, "weights1b", title="Spatially-aware concordance\nwith selected (original)", highlight=815) + labs(fill="weight")
 
-p4 <- doPlot(d, "spatialPC1", title="Spatially-aware\nconcordance (original)")
-p5 <- doPlot(d, "weights1", title="Concordance with\nselected (original)", highlight=1020)
-p6 <- doPlot(d, "weights1b", title="Concordance with\nselected (original)", highlight=1270)
+p7 <- doPlot(d, "spatialPC2", title="Spatially-aware\nconcordance (modified)") + labs(fill="Spatial\nSPC")
+p8 <- doPlot(d, "weights2", title="Spatially-aware concordance\nwith selected (modified)", highlight=615) + labs(fill="weight")
+p9 <- doPlot(d, "weights2b", title="Spatially-aware concordance\nwith selected (modified)", highlight=815) + labs(fill="weight")
 
-p7 <- doPlot(d, "spatialPC2", title="Spatially-aware\nconcordance (modified)")
-p8 <- doPlot(d, "weights2", title="Concordance with\nselected (modified)", highlight=1020)
-p9 <- doPlot(d, "weights2b", title="Concordance with\nselected (modified)", highlight=1270)
+p10 <- doDiffPlot(d, "nsConc", title="Neighborhood-smoothed\npair concordance")
+p11 <- doDiffPlot(d, "spatialPC1", title="Spatially-aware\nconcordance (original)")
+p12 <- doDiffPlot(d, "spatialPC2", title="Spatially-aware\nconcordance (modified)")
 
-
-pdf("dist_fns.pdf", width=12, height=12)
-cowplot::plot_grid(p1,p2,p3,p4,p5,p6,p7,p8,p9,nrow=3,scale=0.95,labels="AUTO")
+pdf("dist_fns.pdf", width=15, height=16)
+cowplot::plot_grid(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12, nrow=4,scale=0.95,labels="AUTO",hjust = 0)
 dev.off()
 ```
+
