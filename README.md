@@ -19,4 +19,4 @@ The subdirectories and corresponding figures are as follows:
 - AMSP_normalization: Figure S4
 - metrics_across_simulations: Figure S5
 - spatial_spatialARI_distFns: Figure S9
-- scalability_benchmark: Figure 9, Figure S11
+- scalability_benchmark: Figure S11, Figure S12
